@@ -1,5 +1,6 @@
 {
   "main": "index.js",
+  "start": "index.js",
   "dependencies": {
     "discord.js": "11.4.2"
   }
