@@ -1,15 +1,38 @@
 {
-	"token": "NTc0MDkyNTgzMDE0MjM2MTYw.XM0X_A.nFZwF3YNAhl3L6w7nhf682I8vLE",
-	"whitelist": [
-		"280298381807714304",
-		"487458564810473475"
-	],
-	"enabled": [
-		["trash can - #general", "487458564810473475"]
-	],
-	"waittimes": [
-		[2000, 30000],
-		[30000, 900000]
-	],
+	"name": "Screambot",
+	"channels": {
+		"trash can - #general": {
+			"id": "487458564810473475"
+		},
+		"/r/Ooer - #general": {
+			"id": "280298381807714304"
+		},
+		"/r/Ooer - #botspam": {
+			"id": "325969983441993729"
+		}
+	},
+	"servernicks": {
+		"/r/Ooer": { 
+			"id": "280298381807714304",
+			"nickname": "Screamso"
+		}
+	},
+	"waittimes": {
+		"short": {
+			"min": 2000,
+			"max": 10000
+		},
+		"long": {
+			"min": 30000,
+			"max": 1800000
+		}
+	},
+	"admins": {
+		"garlicOS": "206235904644349953"
+	},
+	"donotreply": {
+		"Screambot": "574092583014236160",
+		"Screambot BETA": "576225144125652999"
+	},
 	"activity": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 }
