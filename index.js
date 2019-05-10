@@ -14,9 +14,9 @@
  * 	  - Make a method that PMs me errors
  */
 
-const fs = require("fs");
-const Discord = require("discord.js");
-require("console-stamp")(console, "[HH:MM:ss.l]");
+const fs = require("fs")
+const Discord = require("discord.js")
+require("console-stamp")(console, "[HH:MM:ss.l]")
 
 
 
@@ -29,8 +29,8 @@ class Screambot {
 	 * Logs in
 	 */
 	constructor() {
-		console.log("Screambot instantiated.");
-		this.client = new Discord.Client();
+		console.log("Screambot instantiated.")
+		this.client = new Discord.Client()
 
 
 		this.client.on("ready", () => {
@@ -39,31 +39,31 @@ class Screambot {
 			 * Triggers when Screambot successfully
 			 *   logs into Discord
 			 */
-			console.log(`Logged in as ${this.client.user.tag}.\n`);
+			console.log(`Logged in as ${this.client.user.tag}.\n`)
 
 			// Load then watch for changes in the config file
-			this.loadConfig(fs.readFileSync(process.env.CONFIG_PATH));
+			this.loadConfig(fs.readFileSync(process.env.CONFIG_PATH))
 			fs.watchFile(process.env.CONFIG_PATH, () => {
-				console.log("Config file has been changed.");
-				this.loadConfig(fs.readFileSync(process.env.CONFIG_PATH));
-			});
+				console.log("Config file has been changed.")
+				this.loadConfig(fs.readFileSync(process.env.CONFIG_PATH))
+			})
 
 			// Load then watch for changes in the command list
-			this.loadCmds(fs.readFileSync(process.env.CMDS_PATH));
+			this.loadCmds(fs.readFileSync(process.env.CMDS_PATH))
 			fs.watchFile(process.env.CMDS_PATH, () => {
-				console.log("commands file has been changed.");
-				this.loadCmds(fs.readFileSync(process.env.CMDS_PATH));
-			});
+				console.log("commands file has been changed.")
+				this.loadCmds(fs.readFileSync(process.env.CMDS_PATH))
+			})
 
 			// Set the title of the "game" Screambot is "playing"
 			this.client.user.setActivity(this.config.activity)
-					.catch(console.error);
+					.catch(console.error)
 
-			console.log(); // New line
+			console.log() // New line
 
 			// Start screaming in the enabled channels
-			this.startScreamingEverywhere();
-		});
+			this.startScreamingEverywhere()
+		})
 
 		
 		/**
@@ -75,24 +75,24 @@ class Screambot {
 			// Pinged
 			if (message.isMentioned(this.client.user)) {
 				if ((this.isAdmin(message.author.id)) && (message.content.includes(" "))) {
-					console.log(`\nScreambot has received a command from ${message.author.username} in ${message.guild.name}/#${message.channel.name}.`);
-					this.adminCommands(message);
+					console.log(`\nScreambot has received a command from ${message.author.username} in ${message.guild.name}/#${message.channel.name}.`)
+					this.adminCommands(message)
 				} else {
-					console.log(`\nScreambot has been pinged by ${message.author.username} in ${message.guild.name}/#${message.channel.name}.`);
+					console.log(`\nScreambot has been pinged by ${message.author.username} in ${message.guild.name}/#${message.channel.name}.`)
 					this.screamIn(message.channel)
 							.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
-							.catch(err => console.error(err));
+							.catch(err => console.error(err))
 				}
 			}
 
 			// Someone screams who is neither on the donotreply list nor Screambot itself
 			if ((message.content.toUpperCase().includes("AAAAAA")) && (message.author != this.client.user) && (!this.inDoNotReply(message.author.id))) {
-				console.log(`\n${message.author.username} has screamed in ${message.guild.name}/#${message.channel.name}.`);
+				console.log(`\n${message.author.username} has screamed in ${message.guild.name}/#${message.channel.name}.`)
 				this.screamIn(message.channel)
 						.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
-						.catch(err => console.error(err));
+						.catch(err => console.error(err))
 			}
-		});
+		})
 
 
 		/**
@@ -100,8 +100,8 @@ class Screambot {
 		 * Triggers when Screambot joins a server
 		 */
 		this.client.on("guildCreate", guild => {
-			console.log(`Joined a new server: ${guild.name} (ID: ${guild.id}). There are ${guild.memberCount} users in it.`);
-		});
+			console.log(`Joined a new server: ${guild.name} (ID: ${guild.id}). There are ${guild.memberCount} users in it.`)
+		})
 
 
 		/**
@@ -109,12 +109,12 @@ class Screambot {
 		 * Triggers when Screambot is removed from a server
 		 */
 		this.client.on("guildDelete", guild => {
-			console.log(`Removed from server: ${guild.name} (ID: ${guild.id}).`);
-		});
+			console.log(`Removed from server: ${guild.name} (ID: ${guild.id}).`)
+		})
 
 		// (Try to) log into Discord
-		console.log("Logging in...");
-		this.client.login(process.env.TOKEN);
+		console.log("Logging in...")
+		this.client.login(process.env.TOKEN)
 	
 	
 		/**
@@ -127,21 +127,21 @@ class Screambot {
 		 * Cleanly logs out of Discord
 		 */
 		process.on('exit', code => {
-			console.log("\n------------------------------------------");
-			console.log(`About to exit with code: ${code}`);
+			console.log("\n------------------------------------------")
+			console.log(`About to exit with code: ${code}`)
 
 			this.client.user.setActivity("SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-					.catch(console.error);
+					.catch(console.error)
 
-			console.log("Logging out...");
+			console.log("Logging out...")
 			this.client.destroy()
 				.then(console.log("Logged out."))
-				.catch(console.error);
+				.catch(console.error)
 
-			console.log("------------------------------------------\n");
+			console.log("------------------------------------------\n")
 
-			throw "fake error that stops execution there has to be a better way than this";
-		});
+			throw "fake error that stops execution there has to be a better way than this"
+		})
 
 	}
 
@@ -157,38 +157,38 @@ class Screambot {
 	 * The fraction is the probability of a short wait
 	 */
 	randomScreamLoop(ch, nickname) {
-		let minWait;
-		let maxWait;
+		let minWait
+		let maxWait
 		if (Math.random() <= (1/5)) {
-			minWait = this.config.waittimes.short.min;
-			maxWait = this.config.waittimes.short.max;
+			minWait = this.config.waittimes.short.min
+			maxWait = this.config.waittimes.short.max
 		} else {
-			minWait = this.config.waittimes.long.min;
-			maxWait = this.config.waittimes.long.max;
+			minWait = this.config.waittimes.long.min
+			maxWait = this.config.waittimes.long.max
 		}
 
-		const randWait = (Math.floor(Math.random() * maxWait)) + minWait;
+		const randWait = (Math.floor(Math.random() * maxWait)) + minWait
 		if (Number.isNaN(randWait)) {
-			console.error("randWait is not a number.");
-			return;
+			console.error("randWait is not a number.")
+			return
 		}
 
-		const waitF = this.msToMinAndSec(randWait/1000);
-		console.log(`[${nickname}] Going to scream in ${waitF.minutes} minutes, ${waitF.seconds} seconds.`);
+		const waitF = this.msToMinAndSec(randWait/1000)
+		console.log(`[${nickname}] Going to scream in ${waitF.minutes} minutes, ${waitF.seconds} seconds.`)
 
 		let loop = setTimeout( () => {
 			this.screamIn(ch)
 					.then(message => {
 						console.log(`Sent ${message.content.length} A's to #${message.channel.name}.\n`)
-						this.randomScreamLoop(ch, nickname);
+						this.randomScreamLoop(ch, nickname)
 					})
 					.catch(err => {
-						console.error(err);
-						clearTimeout(loop);
-					});
-		}, randWait);
+						console.error(err)
+						clearTimeout(loop)
+					})
+		}, randWait)
 
-		return loop;
+		return loop
 	}
 
 
@@ -198,15 +198,15 @@ class Screambot {
 	 *   the nickname's channel
 	 */
 	startScreamingIn(nickname) {
-		let channelId = this.config.channels[nickname].id;
+		let channelId = this.config.channels[nickname].id
 		if (!channelId)
-			console.warn(`\nScreambot is not in any server whose name is "${nickname}" in the config file. Screambot will not scream there.`);
+			console.warn(`\nScreambot is not in any server whose name is "${nickname}" in the config file. Screambot will not scream there.`)
 
-		let ch = this.client.channels.get(channelId);
+		let ch = this.client.channels.get(channelId)
 		if (!ch)
-			console.warn(`\nScreambot is not in any server that has a channel with the ID ${channelId} (labeled "${nickname}" in the config file). Screambot will not scream there.`);
+			console.warn(`\nScreambot is not in any server that has a channel with the ID ${channelId} (labeled "${nickname}" in the config file). Screambot will not scream there.`)
 		else
-			ch.loop = this.randomScreamLoop(ch, nickname);
+			ch.loop = this.randomScreamLoop(ch, nickname)
 	}
 
 
@@ -217,8 +217,8 @@ class Screambot {
 	 */
 	startScreamingEverywhere() {
 		Object.keys(this.config.channels).forEach( nickname => {
-			this.startScreamingIn(nickname);
-		});
+			this.startScreamingIn(nickname)
+		})
 	}
 
 
@@ -227,11 +227,11 @@ class Screambot {
 	 * Clears the timeout assigned to the nickname's channel's loop
 	 */
 	stopScreamingIn(nickname) {
-		let ch = this.config.channels[nickname];
+		let ch = this.config.channels[nickname]
 		//try {
-			clearTimeout(ch.loop);
+			clearTimeout(ch.loop)
 		//} catch (e) {
-		//	if (!e instanceof TypeError) throw e;
+		//	if (!e instanceof TypeError) throw e
 		//}
 	}
 
@@ -242,8 +242,8 @@ class Screambot {
 	 */
 	stopScreamingEverywhere() {
 		Object.keys(this.config.channels).forEach( nickname => {
-			this.stopScreamingIn(nickname);
-		});
+			this.stopScreamingIn(nickname)
+		})
 	}
 
 
@@ -253,8 +253,8 @@ class Screambot {
 	 *   the given channel nickname
 	 */
 	restartScreamLoop(nickname) {
-		this.stopScreamingIn(nickname);
-		this.startScreamingIn(nickname);
+		this.stopScreamingIn(nickname)
+		this.startScreamingIn(nickname)
 	}
 
 
@@ -264,8 +264,8 @@ class Screambot {
 	 */
 	restartAllScreamLoops() {
 		Object.keys(this.config.channels).forEach( nickname => {
-			this.restartScreamLoop(nickname);
-		});
+			this.restartScreamLoop(nickname)
+		})
 	}
 
 
@@ -276,52 +276,52 @@ class Screambot {
 	 * Applies server-specific nicknames
 	 */
 	loadConfig(config) {
-		console.log("Loading config...");
-		this.config = JSON.parse(config);
+		console.log("Loading config...")
+		this.config = JSON.parse(config)
 
-		const chNames = Object.keys(this.config.channels);
+		const chNames = Object.keys(this.config.channels)
 
 		if (chNames.length == 0) {
-			console.warn("No channels specified to scream in.");
+			console.warn("No channels specified to scream in.")
 		} else {
-			console.log("Channels registered:");
+			console.log("Channels registered:")
 			chNames.forEach( chName => {
-				console.log(`    ${chName} (ID: ${this.config.channels[chName].id})`);
-			});
-			console.log();
+				console.log(`    ${chName} (ID: ${this.config.channels[chName].id})`)
+			})
+			console.log()
 		}
 
 
 		// Server-specific nicknames
-		const servernicks = Object.values(this.config.servernicks);
-		const uid = this.client.user.id;
-		let sn;
+		const servernicks = Object.values(this.config.servernicks)
+		const uid = this.client.user.id
+		let sn
 
 		this.client.guilds.tap( server => {
-			sn = this.isServerNickForId(servernicks, server.id);
+			sn = this.isServerNickForId(servernicks, server.id)
 			if (sn != false) {
 				server.members.get(uid).setNickname(sn.nickname)
 						.then(console.log(`\nCustom nickname in server ${sn.id}: ${sn.nickname}.\n`))
-						.catch(console.error);
+						.catch(console.error)
 			} else {
 				server.members.get(uid).setNickname(this.config.name)
-						.catch(console.error);
+						.catch(console.error)
 			}
 
-		});
+		})
 
-		console.log("Config successfully loaded.\n");
+		console.log("Config successfully loaded.\n")
 	}
 
 
 	isServerNickForId(servernicks, serverId) {
-		let sn;
-		for (let i=0; i<servernicks.length; i++) {
-			sn = servernicks[i];
+		let sn
+		for (let i=0 i<servernicks.length i++) {
+			sn = servernicks[i]
 			if (sn.id == serverId)
-				return sn;
+				return sn
 		}
-		return false;
+		return false
 	}
 
 
@@ -331,13 +331,13 @@ class Screambot {
 	 * Sets it as this.cmds
 	 */
 	loadCmds(cmds) {
-		console.log("Loading commands...");
-		try { this.cmds = JSON.parse(cmds); }
+		console.log("Loading commands...")
+		try { this.cmds = JSON.parse(cmds) }
 		catch (err) {
-			console.error("This commands file is invalid! Keeping the old commands.");
-			return;
+			console.error("This commands file is invalid! Keeping the old commands.")
+			return
 		}
-		console.log("Commands successfully loaded.");
+		console.log("Commands successfully loaded.")
 	}
 
 
@@ -348,29 +348,29 @@ class Screambot {
 	 * The fraction is the probability of a small scream
 	 */
 	generateScream() {
-		let min = 1;
-		let max = 100;
+		let min = 1
+		let max = 100
 
 		/*
 		// Big scream or smol scream?
 		if (Math.random() <= (3/4)) {
-			min = 5;
-			max = 100;
+			min = 5
+			max = 100
 		} else {
-			min = 101;
-			max = 2000;
+			min = 101
+			max = 2000
 		}
 		*/
 
-		let a = Math.floor(Math.random() * (max-min)) + min;
-		let scream = "";
+		let a = Math.floor(Math.random() * (max-min)) + min
+		let scream = ""
 
 		while (a > 0) {
-			scream += "A";
-			a--;
+			scream += "A"
+			a--
 		}
 
-		return scream;
+		return scream
 	}
 
 
@@ -382,8 +382,8 @@ class Screambot {
 	screamIn(ch) { return new Promise( (resolve, reject) => {
 		this.sayIn(ch, this.generateScream())
 				.then(message => resolve(message))
-				.catch(err => reject(err));
-	});}
+				.catch(err => reject(err))
+	})}
 
 
 	/**
@@ -395,9 +395,9 @@ class Screambot {
 	sayIn(ch, msg) { return new Promise( (resolve, reject) => {
 		ch.send(msg)
 				.then(message => resolve(message))
-				.catch(err => reject(err));
-				return;
-	});}
+				.catch(err => reject(err))
+				return
+	})}
 
 
 	/**
@@ -405,7 +405,7 @@ class Screambot {
 	 * Checks if the given user ID matches an admin in the config file
 	 */
 	isAdmin(authorId) {
-		return (Object.values(this.config.admins).includes(authorId));
+		return (Object.values(this.config.admins).includes(authorId))
 	}
 
 
@@ -419,22 +419,22 @@ class Screambot {
 	 */
 	adminCommands(message) {
 		// Split into words
-		let cmd = message.content.split(" ");
+		let cmd = message.content.split(" ")
 
 		// Remove first word (which is <@screambotsid)
-		cmd.shift();
+		cmd.shift()
 
-		// Clone cmd to args; remove the keyword
-		let args = [...cmd];
-		args.shift();
+		// Clone cmd to args remove the keyword
+		let args = [...cmd]
+		args.shift()
 
 		// If command matches one listed in the commands file
 		Object.keys(this.cmds).forEach( keywd => {
 			if (cmd[0] == keywd) {
-				console.log(`Command: ${cmd.toString()}`);
-				eval(`${this.cmds[keywd]}(${args.toString()});`); // Oh boy I hope no one ever sees this
+				console.log(`Command: ${cmd.toString()}`)
+				eval(`${this.cmds[keywd]}(${args.toString()})`) // Oh boy I hope no one ever sees this
 			}
-		});
+		})
 	}
 
 
@@ -445,13 +445,13 @@ class Screambot {
 	 * exampleTimeObj = {
 	 *   minutes: 2
 	 *   seconds: 30
-	 * };
+	 * }
 	 */
 	msToMinAndSec(time) {
-		let timeObj = {};
-		timeObj.minutes = Math.floor(time / 60);
-		timeObj.seconds = Math.round(time - timeObj.minutes * 60);
-		return timeObj;
+		let timeObj = {}
+		timeObj.minutes = Math.floor(time / 60)
+		timeObj.seconds = Math.round(time - timeObj.minutes * 60)
+		return timeObj
 	}
 
 
@@ -461,7 +461,7 @@ class Screambot {
 	 *   donotreply list
 	 */
 	inDoNotReply(userId) {
-		return (Object.values(this.config.donotreply).includes(userId));
+		return (Object.values(this.config.donotreply).includes(userId))
 	}
 
 }
@@ -477,4 +477,4 @@ class Screambot {
  *   delete it and then run it from the
  *   command line instead or something
  */
-const screambot = new Screambot();
+const screambot = new Screambot()
