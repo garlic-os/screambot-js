@@ -1,0 +1,4 @@
+{
+	"shutdown": "process.exit",
+	"log": "console.log();console.log"
+}
