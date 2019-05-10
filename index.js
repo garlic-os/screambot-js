@@ -316,7 +316,7 @@ class Screambot {
 
 	isServerNickForId(servernicks, serverId) {
 		let sn
-		for (let i=0 i<servernicks.length i++) {
+		for (let i=0; i<servernicks.length; i++) {
 			sn = servernicks[i]
 			if (sn.id == serverId)
 				return sn
