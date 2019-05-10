@@ -1,7 +1,7 @@
 {
   "main": "index.js",
-  "start": "index.js",
   "dependencies": {
-    "discord.js": "11.4.2"
+    "discord.js": "11.4.2",
+    "console-stamp": "0.2.7"
   }
 }
