@@ -124,18 +124,19 @@ class Screambot {
 		 * Cleanly logs out of Discord
 		 */
 		process.on('exit', code => {
-			console.log("\n------------------------------------------")
-			console.log(`About to exit with code: ${code}`)
+			console.warn("\n")
+			console.warn("------------------------------------------")
+			console.warn(`About to exit with code: ${code}`)
 
 			this.client.user.setActivity("SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 					.catch(console.error)
 
-			console.log("Logging out...")
+			console.warn("Logging out...")
 			this.client.destroy()
 				.then(console.log("Logged out."))
 				.catch(console.error)
 
-			console.log("------------------------------------------\n")
+			console.warn("------------------------------------------\n")
 
 			throw "fake error that stops execution there has to be a better way than this"
 		})
