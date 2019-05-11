@@ -2,13 +2,16 @@
 	"name": "Screambot",
 	"channels": {
 		"trash can - #general": {
-			"id": "487458564810473475"
+			"id": "487458564810473475",
+			"autoscream": "false"
 		},
 		"/r/Ooer - #general": {
-			"id": "280298381807714304"
+			"id": "280298381807714304",
+			"autoscream": "true"
 		},
 		"/r/Ooer - #botspam": {
-			"id": "325969983441993729"
+			"id": "325969983441993729",
+			"autoscream": "false"
 		}
 	},
 	"servernicks": {
