@@ -51,7 +51,7 @@ class Screambot {
 			// Load then watch for changes in the command list
 			this.loadCmds(fs.readFileSync(process.env.CMDS_PATH))
 			fs.watchFile(process.env.CMDS_PATH, () => {
-				console.log("commands file has been changed.")
+				console.log("Commands file has been changed.")
 				this.loadCmds(fs.readFileSync(process.env.CMDS_PATH))
 			})
 
@@ -60,9 +60,6 @@ class Screambot {
 					.catch(console.error)
 
 			console.log() // New line
-
-			// Start screaming in the enabled channels
-			this.startScreamingEverywhere()
 		})
 
 		
@@ -200,7 +197,7 @@ class Screambot {
 	startScreamingIn(nickname) {
 		let channelId = this.config.channels[nickname].id
 		if (!channelId)
-			console.warn(`\nScreambot is not in any server whose name is "${nickname}" in the config file. Screambot will not scream there.`)
+			console.warn(`\nScreambot is not in any server with a channel whose name is "${nickname}" in the config file. Screambot will not scream there.`)
 
 		let ch = this.client.channels.get(channelId)
 		if (!ch)
@@ -217,7 +214,9 @@ class Screambot {
 	 */
 	startScreamingEverywhere() {
 		Object.keys(this.config.channels).forEach( nickname => {
-			this.startScreamingIn(nickname)
+			if (this.config.channels[nickname].autoscream == "true") {
+				this.startScreamingIn(nickname)
+			}
 		})
 	}
 
@@ -263,9 +262,8 @@ class Screambot {
 	 * Restarts all scream loops for every channel in the channels list
 	 */
 	restartAllScreamLoops() {
-		Object.keys(this.config.channels).forEach( nickname => {
-			this.restartScreamLoop(nickname)
-		})
+		this.stopScreamingEverywhere();
+		this.startScreamingEverywhere();
 	}
 
 
@@ -309,6 +307,8 @@ class Screambot {
 			}
 
 		})
+
+		this.restartAllScreamLoops();
 
 		console.log("Config successfully loaded.\n")
 	}
