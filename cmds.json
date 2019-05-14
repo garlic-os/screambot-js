@@ -1,0 +1,8 @@
+{
+	"admin": {
+		"shutdown": "process.exit"
+	},
+	"dev": {
+		"log": "console.log();console.log"
+	}
+}
