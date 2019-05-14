@@ -27,15 +27,13 @@
 	"waittimes": {
 		"short": {
 			"min": 2000,
-			"max": 10000
+			"max": 10000,
+			"chance": 0.2
 		},
 		"long": {
 			"min": 30000,
 			"max": 1800000
 		}
-	},
-	"admins": {
-		"garlicOS": "206235904644349953"
 	},
 	"donotreply": {
 		"Screambot": "574092583014236160",
