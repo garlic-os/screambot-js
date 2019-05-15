@@ -81,6 +81,8 @@ client.on("ready", () => {
 		.catch(err => logError(err))
 
 	console.log() // New line
+		
+	startScreamingEverywhere()
 
 	} catch (err) {
 		crashWith(err)
