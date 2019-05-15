@@ -3,6 +3,7 @@
 		"shutdown": "process.exit"
 	},
 	"dev": {
-		"log": "console.log();console.log"
+		"log": "console.log('User log:');console.log",
+		"say": "message.reply"
 	}
 }
