@@ -287,7 +287,7 @@ function startScreamingIn(nickname) {
  */
 function startScreamingEverywhere() {
 	Object.keys(config.channels).forEach( nickname => {
-		if (config.channels[nickname].autoscream == "true") {
+		if (config.channels[nickname].autoscream) {
 			startScreamingIn(nickname)
 		}
 	})
