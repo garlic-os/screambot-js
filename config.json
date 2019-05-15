@@ -3,15 +3,15 @@
 	"channels": {
 		"trash can - #general": {
 			"id": "487458564810473475",
-			"autoscream": "false"
+			"autoscream": false
 		},
 		"/r/Ooer - #general": {
 			"id": "280298381807714304",
-			"autoscream": "true"
+			"autoscream": true
 		},
 		"/r/Ooer - #botspam": {
 			"id": "325969983441993729",
-			"autoscream": "false"
+			"autoscream": false
 		}
 	},
 	"servernicks": {
