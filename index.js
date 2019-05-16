@@ -43,7 +43,13 @@
 // Requirements
 const fs = require("fs")
 const Discord = require("discord.js")
-require("console-stamp")(console, "[HH:MM:ss.l]") // Makes the logs look nice
+
+// Makes the logs look nice
+require("console-stamp")(console, {
+	datePrefix: "",
+	dateSuffix: "",
+	pattern: " "
+})
 
 
 
