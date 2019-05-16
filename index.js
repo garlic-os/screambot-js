@@ -8,25 +8,35 @@
  *    - It feels like it
  * 
  *  If you're using this and you're not me, make sure to set
- *    These environment variables:
+ *    these environment variables:
  *    - TOKEN: The bot token
  *    - CONFIG_PATH: Path to a JSON file holding Screambot's configuration
- *    - CMDS_PATH: Path to a JSON file defining Screambot's chat commands
- *    - RANKS_PATH: Path to a JSON file saying who's what rank
+ *    - RANKS_PATH: Path to a JSON file saying who's a Screambot ranking official
+ * 
+ *  I couldn't have done this without:
+ *    - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
+ *    - discord.js and its documentation: https://discord.js.org/#/
+ *    - Inspiration and encouragement from friends and family
+ *    - nodeJS lol
+ *    - Viewers like you
+ *        - Thank you
  * 
  *  TODO:
  *    - Scream in VC (https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md)
  *    - Re-order methods
- *    - Come up with more chat commands
  *    - Ranks: go by server roles, when possible, instead of hard-coded UIDs
- *    - See if you can replace "err => logError(err)" with just "logError", etc.
+ *    - See if I can replace "err => logError(err)" with just "logError", etc.
  *    - Use promises for the load functions
- *    - Add scream variations
+ *    - Add scream variations (maybe?)
  *        - Ending h's
  *        - Ending rgh
  *        - Ending punctuation
  *        - Beginning lowercase a's
  *        - Beginning o's
+ *        - o's instead of a's
+ *    - Make a "help" command
+ *    - Merge ranks.json with config.json
+ *    - Make the code for responding to pings not garbage
  */
 
 
@@ -43,13 +53,12 @@ const client = new Discord.Client()
 
 // Shameful global variables
 global.config = {}
-global.cmds = {}
-global.ranks = {}
+global.ranks  = {}
 
 // Load then watch for changes in the command list
 loadRanks(fs.readFileSync(process.env.RANKS_PATH), true)
 fs.watchFile(process.env.RANKS_PATH, () => {
-	loadCmds(fs.readFileSync(process.env.RANKS_PATH), false)
+	loadRanks(fs.readFileSync(process.env.RANKS_PATH), false)
 })
 
 client.on("ready", () => {
@@ -69,19 +78,12 @@ client.on("ready", () => {
 		loadConfig(fs.readFileSync(process.env.CONFIG_PATH), false)
 	})
 
-	// Load then watch for changes in the command list
-	// I should probably put this in a function
-	loadCmds(fs.readFileSync(process.env.CMDS_PATH), true)
-	fs.watchFile(process.env.CMDS_PATH, () => {
-		loadCmds(fs.readFileSync(process.env.CMDS_PATH), false)
-	})
-
 	// Set the title of the "game" Screambot is "playing"
 	client.user.setActivity(config.activity)
 		.catch(err => logError(err))
 
 	console.log() // New line
-		
+
 	startScreamingEverywhere()
 
 	} catch (err) {
@@ -101,15 +103,22 @@ client.on("message", message => {
 	// Pinged
 	if (message.isMentioned(client.user)) {
 		if (message.content.includes(" ")) {
-			if (isAdmin(message.author.id)) {
-				console.log(`\nScreambot has received a command from admin ${message.author.username} in ${message.guild.name}/#${message.channel.name}.`)
-				command("admin", message)
-			} else if (isDev(message.author.id)) {
-				console.log(`\nScreambot has received a command from dev ${message.author.username} in ${message.guild.name}/#${message.channel.name}.`)
-				command("dev", message)
+			if (!command(message)) {
+				if (message.channel.type == "dm")
+					console.log(`\n[Direct message] Screambot has been pinged by ${message.author.username}.`)
+				else
+					console.log(`\n[${message.guild.name} - #${message.channel.name}] Screambot has been pinged by ${message.author.username}.`)
+
+				screamIn(message.channel)
+					.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
+					.catch(err => logError(err))
 			}
 		} else {
-			console.log(`\nScreambot has been pinged by ${message.author.username} in ${message.guild.name}/#${message.channel.name}.`)
+			if (message.channel.type == "dm")
+				console.log(`\n[Direct message] Screambot has been pinged by ${message.author.username}.`)
+			else
+				console.log(`\n[${message.guild.name} - #${message.channel.name}] Screambot has been pinged by ${message.author.username}.`)
+
 			screamIn(message.channel)
 				.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
 				.catch(err => logError(err))
@@ -120,7 +129,10 @@ client.on("message", message => {
 	if ((message.content.toUpperCase().includes("AAA"))
 	&& (message.author != client.user)
 	&& (!inDoNotReply(message.author.id))) {
-		console.log(`\n${message.author.username} has screamed in ${message.guild.name}/#${message.channel.name}.`)
+		if (message.channel.type == "dm")
+			console.log(`\n[Direct message] ${message.author.username} has screamed at Screambot.`)
+		else
+			console.log(`\n[${message.guild.name} - #${message.channel.name}] ${message.author.username} has screamed.`)
 		screamIn(message.channel)
 			.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
 			.catch(err => logError(err))
@@ -138,7 +150,13 @@ client.on("message", message => {
  */
 client.on("guildCreate", guild => {
 	try {
-	console.log(`Joined a new server: ${guild.name} (ID: ${guild.id}). There are ${guild.memberCount} users in it.`)
+
+	console.log(`---------------------------------
+Screambot has been added to a new server.
+${guild.name} (ID: ${guild.id})
+${guild.memberCount} members
+---------------------------------`)
+
 	} catch (err) {
 		crashWith(err)
 	}
@@ -151,11 +169,15 @@ client.on("guildCreate", guild => {
  */
 client.on("guildDelete", guild => {
 	try {
-	console.log(`Removed from server: ${guild.name} (ID: ${guild.id}).`)
-	} catch (e) {
+	console.log(`---------------------------------
+Screambot has been removed from a server.
+${guild.name} (ID: ${guild.id})
+---------------------------------`)
+	} catch (err) {
 		crashWith(err)
 	}
 })
+
 
 // (Try to) log into Discord
 console.log("Logging in...")
@@ -172,8 +194,7 @@ client.login(process.env.TOKEN)
  * Cleanly logs out of Discord
  */
 process.on("exit", code => {
-	console.warn("\n")
-	console.warn("------------------------------------------")
+	console.warn("---------------------------------")
 	console.warn(`About to exit with code: ${code}`)
 
 	pmTheDevs("Logging out.")
@@ -186,13 +207,12 @@ process.on("exit", code => {
 		.then(console.warn("Logged out."))
 		.catch(err => logError(err))
 
-	console.warn("------------------------------------------\n")
+	console.warn("---------------------------------\n")
 })
 
 
 
 // --- Methods -------------------------
-
 /**
  * Random Scream Loop
  * Returns a timeout that:
@@ -289,9 +309,8 @@ function startScreamingIn(nickname) {
  */
 function startScreamingEverywhere() {
 	Object.keys(config.channels).forEach( nickname => {
-		if (config.channels[nickname].autoscream) {
+		if (config.channels[nickname].autoscream)
 			startScreamingIn(nickname)
-		}
 	})
 }
 
@@ -301,12 +320,7 @@ function startScreamingEverywhere() {
  * Clears the timeout assigned to the nickname's channel's loop
  */
 function stopScreamingIn(nickname) {
-	let ch = config.channels[nickname]
-	//try {
-		clearTimeout(ch.loop)
-	//} catch (e) {
-	//	if (!e instanceof TypeError) throw e
-	//}
+	clearTimeout(client.channels.get(config.channels[nickname].id))
 }
 
 
@@ -376,6 +390,7 @@ function loadConfig(buffer, firstTime) {
 	catch (err) {
 		if (firstTime) {
 			crashWith("The given config file is invalid! Screambot cannot continue.")
+			return
 		} else {
 			logError("The given config file is invalid! Keeping the old config.")
 			return
@@ -387,7 +402,7 @@ function loadConfig(buffer, firstTime) {
 	if (chNames.length == 0) {
 		console.warn("No channels specified to scream in.")
 	} else {
-		console.info("Channels registered:")
+		console.info("Channels:")
 		chNames.forEach( chName => {
 			console.info(`    ${chName} (ID: ${config.channels[chName].id})`)
 		})
@@ -415,31 +430,6 @@ function loadConfig(buffer, firstTime) {
 	if (!firstTime) restartAllScreamLoops();
 
 	console.log(`Config successfully ${(firstTime) ? "" : "re"}loaded.`)
-}
-
-
-/**
- * Load Commands
- * Converts a JSON-formatted string to an object
- * Sets it as cmds
- */
-function loadCmds(buffer, firstTime) {
-	if (!firstTime) {
-		console.info("The command file has been changed.")
-		pmTheDevs("The command file has been changed.")
-	}
-
-	console.log(`${(firstTime) ? "L" : "Rel"}oading commands...`)
-	try { cmds = JSON.parse(buffer) }
-	catch (err) {
-		if (firstTime) {
-			crashWith("The given command file is invalid! Screambot cannot continue.")
-		} else {
-			logError("The given command file is invalid! Keeping the old commands.")
-			return
-		}
-	}
-	console.log(`Commands successfully ${(firstTime) ? "" : "re"}loaded.`)
 }
 
 
@@ -481,23 +471,10 @@ function loadRanks(buffer, firstTime) {
 /**
  * Generate Scream
  * Generates a 1-100 character string of capital A's
- * 
- * The fraction is the probability of a small scream
  */
 function generateScream() {
 	let min = 1
 	let max = 100
-
-	/*
-	// Big scream or smol scream?
-	if (Math.random() <= (3/4)) {
-		min = 5
-		max = 100
-	} else {
-		min = 101
-		max = 2000
-	}
-	*/
 
 	let a = Math.floor(Math.random() * (max-min)) + min
 	let scream = ""
@@ -530,7 +507,7 @@ function screamIn(ch) { return new Promise( (resolve, reject) => {
  *   or if the send command screws up 
  */
 function sayIn(ch, msg) { return new Promise( (resolve, reject) => {
-	if (channelIdIsAllowed(ch.id)) {
+	if (channelIdIsAllowed(ch.id) || ch.type == "dm") {
 		ch.send(msg)
 			.then(message => resolve(message))
 			.catch(err => reject(err))
@@ -566,36 +543,54 @@ function isDev(authorId) {
  * Admins can only execute admin commands
  * Devs can execute both admin and dev commands
  * 
+ * Returns true if a command was executed
+ * Returns false if no command was executed
+ *   or if the author was not a ranked official
+ * 
  * Command syntax:
  * "@Screambot [command] [args space delimited]"
  */
-function command(rank, message) {
+function command(message) { try {
+	console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has received a command from ${message.author.username}.`)
+
+	// Rank check
+	let rank
+	const authorId = message.author.id
+	if (isAdmin(authorId)) rank = "admin"
+	else if (isDev(authorId)) rank = "dev"
+	else return false
+
 	// Split into words
 	let cmd = message.content.split(" ")
 
-	// Remove first word (which is <@screambotsid)
+	// Remove first word (which is <@screambotsid>)
 	cmd.shift()
 
-	// Clone cmd to args remove the keyword
+	// Clone cmd to args
 	let args = [...cmd]
-	args.shift()
 
-	let cmdList
-	if (rank == "admin") cmdList = cmds.admin
-	else if (rank == "dev") cmdList = cmds.dev
-	else {
-		logError(`"${rank}" is not a valid rank.`)
-		return
-	}
+	// Take the keyword from args and set it to cmd
+	cmd = args.shift()
 
-	// If command matches one listed in the commands file
-	Object.keys(cmdList).forEach( keywd => {
-		if (cmd[0] == keywd) {
-			console.log(`Command: ${cmd.toString()}`)
-			eval(`${cmds[keywd]}(${args.toString()})`) // Oh boy I hope no one ever sees this
+	if (["admin", "dev"].includes(rank)) {
+		switch (cmd) {
+			case "shutdown":
+				process.exit(0)
+				return true
 		}
-	})
-}
+	}
+	if ("dev" == rank) {
+		switch (cmd) {
+			case "log":
+				console.log(eval(args))
+				return true
+			case "say":
+				message.reply(eval(args))
+				return true
+		}
+	}
+	return false
+} catch (err) { logError(err) } }
 
 
 /**
@@ -618,8 +613,6 @@ function inDoNotReply(userId) {
 function logError(err) {
 	console.error(err)
 	pmTheDevs(err)
-		.then(rsp => `Sent message to ${rsp.user.username}: "${rsp.string}"`)
-		.catch(console.error)
 }
 
 
@@ -633,13 +626,16 @@ function logError(err) {
  * For fatal errors
  */
 function crashWith(err) {
-	console.error(err)
-	pmTheDevs(err)
+	logError(err)
 	process.exit(1)
 	throw err
 }
 
 
+/**
+ * PM
+ * It PM's someone.
+ */
 function pm(user, string) { return new Promise( (resolve, reject) => {
 	if (user === undefined) {
 		reject(`User is undefined.`)
@@ -664,10 +660,15 @@ function pmTheDevs(string) {
 }
 
 
+/**
+ * Returns whether a channel ID is in
+ *   the list of channels in the config file
+ */
 function channelIdIsAllowed(channelId) {
-	Object.values(config.channels).forEach( nickname => {
-		if (config.channels[nickname].id == channelId)
+	let channels = Object.values(config.channels)
+	for (let i=0; i<channels.length; i++) {
+		if (channels[i].id == channelId)
 			return true
-	})
+	}
 	return false
 }
