@@ -5,13 +5,13 @@
  *  Screams when:
  *    - Pinged
  *    - Someone else screams
- *    - It feels like it
+ *    - Someone says something (sometimes)
  * 
  *  If you're using this and you're not me, make sure to set
  *    these environment variables:
  *    - TOKEN: The bot token
  *    - CONFIG_PATH: Path to a JSON file holding Screambot's configuration
- *    - RANKS_PATH: Path to a JSON file saying who's a Screambot ranking official
+ *    - RANKS_PATH:  Path to a JSON file saying who's a Screambot ranking official
  * 
  *  I couldn't have done this without:
  *    - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
@@ -37,6 +37,10 @@
  *    - Make a "help" command
  *    - Merge ranks.json with config.json
  *    - Make the code for responding to pings not garbage
+ *    - Refactor names for:
+ *        - variables
+ *        - functions
+ *        - methods
  */
 
 
@@ -84,13 +88,13 @@ client.on("ready", () => {
 		loadConfig(fs.readFileSync(process.env.CONFIG_PATH), false)
 	})
 
+	//global.voice = new VoiceModule(client.createVoiceBroadcast, client.channels, config.voicechannels)
+
 	// Set the title of the "game" Screambot is "playing"
 	client.user.setActivity(config.activity)
 		.catch(err => logError(err))
 
 	console.log() // New line
-
-	startScreamingEverywhere()
 
 	} catch (err) {
 		crashWith(err)
@@ -106,43 +110,48 @@ client.on("ready", () => {
 client.on("message", message => {
 	try {
 
-	// Pinged
-	if (message.isMentioned(client.user)) {
-		if (message.content.includes(" ")) {
-			if (!command(message)) {
-				if (message.channel.type == "dm")
-					console.log(`\n[Direct message] Screambot has been pinged by ${message.author.username}.`)
-				else
-					console.log(`\n[${message.guild.name} - #${message.channel.name}] Screambot has been pinged by ${message.author.username}.`)
+		if (!inDoNotReply(message.author.id)) {
 
+			// Pinged
+			if (message.isMentioned(client.user)) {
+				if (!command(message)) {
+					if (message.channel.type == "dm")
+						console.log(`[Direct message] Screambot has been pinged by ${message.author.username}.`)
+					else
+						console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has been pinged by ${message.author.username}.`)
+
+					screamIn(message.channel)
+						.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
+						.catch(err => logError(err))
+				}
+			}
+
+			// Someone screams who is neither on the donotreply list nor Screambot itself
+			else if ((message.content.toUpperCase().includes("AAA"))
+			&& (message.author != client.user)) {
+				if (message.channel.type == "dm")
+					console.log(`[Direct message] ${message.author.username} has screamed at Screambot.`)
+				else
+					console.log(`[${message.guild.name} - #${message.channel.name}] ${message.author.username} has screamed.`)
 				screamIn(message.channel)
 					.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
 					.catch(err => logError(err))
 			}
-		} else {
-			if (message.channel.type == "dm")
-				console.log(`\n[Direct message] Screambot has been pinged by ${message.author.username}.`)
-			else
-				console.log(`\n[${message.guild.name} - #${message.channel.name}] Screambot has been pinged by ${message.author.username}.`)
 
-			screamIn(message.channel)
-				.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
-				.catch(err => logError(err))
+			// If the message is nothing special, maybe scream anyway
+			else {
+				if (randomReplyChance()) {
+					if (message.channel.type == "dm")
+						console.log(`[Direct message] Screambot has randomly decided to reply to ${message.author.username}'s message.`)
+					else
+						console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has randomly decided to reply to ${message.author.username}'s message.`)
+					screamIn(message.channel)
+						.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
+						.catch(err => logError(err))
+				}
+			}
 		}
-	}
 
-	// Someone screams who is neither on the donotreply list nor Screambot itself
-	if ((message.content.toUpperCase().includes("AAA"))
-	&& (message.author != client.user)
-	&& (!inDoNotReply(message.author.id))) {
-		if (message.channel.type == "dm")
-			console.log(`\n[Direct message] ${message.author.username} has screamed at Screambot.`)
-		else
-			console.log(`\n[${message.guild.name} - #${message.channel.name}] ${message.author.username} has screamed.`)
-		screamIn(message.channel)
-			.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
-			.catch(err => logError(err))
-	}
 
 	} catch (err) {
 		crashWith(err)
@@ -219,148 +228,6 @@ process.on("exit", code => {
 
 
 // --- Methods -------------------------
-/**
- * Random Scream Loop
- * Returns a timeout that:
- *   - Waits a random amount of time (different each iteration)
- *   - Screams in the selected channel
- * 
- * The nickname is just there to make the logs more readable.
- */
-function randomScreamLoop(ch, nickname) {
-	/**
-	 * MS to Minutes and Seconds
-	 * Converts a millisecond value to a time object
-	 * 
-	 * exampleTimeObj = {
-	 *   minutes: 2
-	 *   seconds: 30
-	 * }
-	 */
-	function _msToMinAndSec(time) {
-		let timeObj = {}
-		timeObj.minutes = Math.floor(time / 60)
-		timeObj.seconds = Math.round(time - timeObj.minutes * 60)
-		return timeObj
-	}
-
-	const wait = randWait()
-
-	const waitF = _msToMinAndSec(wait/1000)
-	console.log(`[${nickname}] Going to scream in ${waitF.minutes} minutes, ${waitF.seconds} seconds.`)
-
-	let loop = setTimeout( () => {
-		screamIn(ch)
-			.then(message => {
-				console.log(`Sent ${message.content.length} A's to #${message.channel.name}.\n`)
-				randomScreamLoop(ch, nickname)
-			})
-			.catch(err => {
-				logError(err)
-				clearTimeout(loop)
-			})
-	}, wait)
-
-	return loop
-}
-
-
-/**
- * Random wait
- * Comes up with a random length of time
- * Based off the config file
- */
-function randWait() {
-	let minWait
-	let maxWait
-	if (Math.random() <= config.waittimes.short.chance) {
-		minWait = config.waittimes.short.min
-		maxWait = config.waittimes.short.max
-	} else {
-		minWait = config.waittimes.long.min
-		maxWait = config.waittimes.long.max
-	}
-
-	const value = (Math.floor(Math.random() * maxWait)) + minWait
-	if (Number.isNaN(value)) {
-		logError("randWait returned NaN.")
-		return
-	}
-	return value
-}
-
-
-/**
- * Start Screaming In
- * Makes a timeout loop for
- *   the nickname's channel
- */
-function startScreamingIn(nickname) {
-	let channelId = config.channels[nickname].id
-	if (!channelId)
-		console.warn(`\nScreambot is not in any server with a channel whose name is "${nickname}" in the config file. Screambot will not scream there.`)
-
-	let ch = client.channels.get(channelId)
-	if (!ch)
-		console.warn(`\nScreambot is not in any server that has a channel with the ID ${channelId} (labeled "${nickname}" in the config file). Screambot will not scream there.`)
-	else
-		ch.loop = randomScreamLoop(ch, nickname)
-}
-
-
-/**
- * Start Screaming Everywhere
- * Makes a random scream timeout
- *   for every channel in the channels list
- */
-function startScreamingEverywhere() {
-	Object.keys(config.channels).forEach( nickname => {
-		if (config.channels[nickname].autoscream)
-			startScreamingIn(nickname)
-	})
-}
-
-
-/**
- * Stop Screaming In
- * Clears the timeout assigned to the nickname's channel's loop
- */
-function stopScreamingIn(nickname) {
-	clearTimeout(client.channels.get(config.channels[nickname].id))
-}
-
-
-/**
- * Stop Screaming Everywhere
- * Clears the timeout for every channel in the channels list
- */
-function stopScreamingEverywhere() {
-	Object.keys(config.channels).forEach( nickname => {
-		stopScreamingIn(nickname)
-	})
-}
-
-
-/**
- * Restart Scream Loop
- * Clears and remakes the timeout assigned to
- *   the given channel nickname
- */
-function restartScreamLoop(nickname) {
-	stopScreamingIn(nickname)
-	startScreamingIn(nickname)
-}
-
-
-/**
- * Restart All Scream Loops
- * Restarts all scream loops for every channel in the channels list
- */
-function restartAllScreamLoops() {
-	stopScreamingEverywhere();
-	startScreamingEverywhere();
-}
-
 
 /**
  * Load Config
@@ -372,8 +239,8 @@ function loadConfig(buffer, firstTime) {
 	/**
 	 * Is Servernick For ID
 	 * Bro not even I know how this works
-	 * It just does something and now loadConfig
-	 *   won't work without it
+	 * It just does something and now it can't give
+	 *   itself custom nicknames without it
 	 */
 	function _isServerNickForId(servernicks, serverId) {
 		let sn
@@ -424,7 +291,7 @@ function loadConfig(buffer, firstTime) {
 		sn = _isServerNickForId(servernicks, server.id)
 		if (sn != false) {
 			server.me.setNickname(sn.nickname)
-				.then(console.log(`\nCustom nickname in server ${sn.id}: ${sn.nickname}.\n`))
+				.then(console.log(`Custom nickname in server ${sn.id}: ${sn.nickname}.\n`))
 				.catch(err => logError(err))
 		} else {
 			server.me.setNickname(config.name)
@@ -433,14 +300,12 @@ function loadConfig(buffer, firstTime) {
 
 	})
 
-	if (!firstTime) restartAllScreamLoops();
-
 	console.log(`Config successfully ${(firstTime) ? "" : "re"}loaded.`)
 }
 
 
 /**
- * Load ranks
+ * Load Ranks
  * Converts a JSON-formatted string to an Object
  * Sets it as Ranks
  */
@@ -491,6 +356,11 @@ function generateScream() {
 	}
 
 	return scream
+}
+
+
+function randomReplyChance() {
+	return (Math.random() * 100 <= config.randomreplychance)
 }
 
 
@@ -557,42 +427,54 @@ function isDev(authorId) {
  * "@Screambot [command] [args space delimited]"
  */
 function command(message) { try {
-	console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has received a command from ${message.author.username}.`)
+	if (!message.content.includes(" ")) return false
+
+	if (message.channel.type == "dm")
+		console.log(`[Direct message] Screambot has received a command from ${message.author.username}.`)
+	else
+		console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has received a command from ${message.author.username}.`)
+
 
 	// Rank check
 	let rank
 	const authorId = message.author.id
-	if (isAdmin(authorId)) rank = "admin"
-	else if (isDev(authorId)) rank = "dev"
+	if (isDev(authorId)) rank = "dev"
+	else if (isAdmin(authorId)) rank = "admin"
 	else return false
 
-	// Split into words
-	let cmd = message.content.split(" ")
+	let cmd = message.content
 
-	// Remove first word (which is <@screambotsid>)
-	cmd.shift()
+	// Remove the mention (i.e. <@screambotsid>)
+	cmd = cmd.substring(cmd.indexOf(" ") + 1)
+	
+	console.info(`Command: ${cmd}`)
 
-	// Clone cmd to args
-	let args = [...cmd]
+	const firstSpaceIndex = cmd.indexOf(" ")
 
-	// Take the keyword from args and set it to cmd
-	cmd = args.shift()
+	// Everything after the first word
+	let args = cmd.substring(firstSpaceIndex + 1)
+
+	// Just the first word
+	cmd = cmd.substring(0, firstSpaceIndex)
 
 	if (["admin", "dev"].includes(rank)) {
 		switch (cmd) {
 			case "shutdown":
-				process.exit(0)
+				process.exit(args)
 				return true
 		}
 	}
 	if ("dev" == rank) {
 		switch (cmd) {
-			case "log":
-				console.log(eval(args))
-				return true
 			case "say":
-				message.reply(eval(args))
+			case "reply":
+				message.reply(args)
 				return true
+			//case "eval":
+			//	message.reply(eval(args))
+			//	return true
+			//case "join":
+				
 		}
 	}
 	return false
@@ -618,7 +500,7 @@ function inDoNotReply(userId) {
  */
 function logError(err) {
 	console.error(err)
-	pmTheDevs(err)
+	pmTheDevs(`ERROR! ${err}`)
 }
 
 
@@ -678,3 +560,4 @@ function channelIdIsAllowed(channelId) {
 	}
 	return false
 }
+
