@@ -2,16 +2,13 @@
 	"name": "Screambot",
 	"channels": {
 		"trash can - #general": {
-			"id": "487458564810473475",
-			"autoscream": false
+			"id": "487458564810473475"
 		},
 		"/r/Ooer - #general": {
-			"id": "280298381807714304",
-			"autoscream": false
+			"id": "280298381807714304"
 		},
 		"/r/Ooer - #botspam": {
-			"id": "325969983441993729",
-			"autoscream": false
+			"id": "325969983441993729"
 		}
 	},
 	"servernicks": {
@@ -20,17 +17,7 @@
 			"nickname": "Screamso"
 		}
 	},
-	"waittimes": {
-		"short": {
-			"min": 2000,
-			"max": 10000,
-			"chance": 0.2
-		},
-		"long": {
-			"min": 30000,
-			"max": 1800000
-		}
-	},
+	"randomreplychance": 1,
 	"donotreply": {
 		"Screambot": "574092583014236160",
 		"Screambot BETA": "576225144125652999"
