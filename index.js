@@ -467,6 +467,8 @@ function command(message) { try {
 	if ("dev" == rank) {
 		switch (cmd) {
 			case "say":
+				sayIn(message.channel, args)
+				return true
 			case "reply":
 				message.reply(args)
 				return true
