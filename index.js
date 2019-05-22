@@ -48,12 +48,12 @@
 const fs = require("fs")
 const Discord = require("discord.js")
 
-// Makes the logs look nice
-require("console-stamp")(console, {
+// Uncomment to add log types ([LOG], [ERROR], etc.)
+/*require("console-stamp")(console, {
 	datePrefix: "",
 	dateSuffix: "",
 	pattern: " "
-})
+})*/
 
 
 
