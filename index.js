@@ -110,7 +110,7 @@ client.on("ready", () => {
 client.on("message", message => {
 	try {
 
-		if (!inDoNotReply(message.author.id)) {
+		if ((!inDoNotReply(message.author.id)) && (!channelIdIsAllowed(message.channel.id))) {
 
 			// Pinged
 			if (message.isMentioned(client.user)) {
