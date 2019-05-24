@@ -17,7 +17,7 @@
  *    - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
  *    - discord.js and its documentation: https://discord.js.org/#/
  *    - Inspiration and encouragement from friends and family
- *    - nodeJS lol
+ *    - node.js lol
  *    - Viewers like you
  *        - Thank you
  * 
