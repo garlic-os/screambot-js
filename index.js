@@ -466,21 +466,34 @@ function command(message) { try {
 	}
 	if ("dev" == rank) {
 		switch (cmd) {
+
 			case "say":
 				sayIn(message.channel, args)
 				return true
+
+			case "sayin":
+				const chidIndex = args.indexOf(" ")
+				// First argument: first word (a Channel ID)
+				// Second argument: everything after first word (what to say)
+				sayIn(args.substring(0, chidIndex), args.substring(chidIndex + 1))
+				return true
+
 			case "reply":
 				message.reply(args)
 				return true
+
 			case "screamnow":
 				screamIn(message.channel)
 				return true
+
 			case "screamin":
 				screamIn(client.channels.get(args))
 				return true
+
 			//case "eval":
 			//	message.reply(eval(args))
 			//	return true
+
 			//case "join":
 				
 		}
