@@ -472,6 +472,12 @@ function command(message) { try {
 			case "reply":
 				message.reply(args)
 				return true
+			case "screamnow":
+				screamIn(message.channel)
+				return true
+			case "screamin":
+				screamIn(client.channels.get(args))
+				return true
 			//case "eval":
 			//	message.reply(eval(args))
 			//	return true
