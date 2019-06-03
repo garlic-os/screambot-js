@@ -435,66 +435,76 @@ function command(message) { try {
 		console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has received a command from ${message.author.username}.`)
 
 
+
 	// Rank check
-	let rank
 	const authorId = message.author.id
-	if (isDev(authorId)) rank = "dev"
-	else if (isAdmin(authorId)) rank = "admin"
-	else return false
+	let rank = 0
+	if      (isAdmin(authorId)) rank = 1 // Admin = 1
+	else if (isDev(authorId))   rank = 2 // Dev   = 2
+	if (rank <= 0) return false
 
 	let cmd = message.content
-
-	// Remove the mention (i.e. <@screambotsid>)
-	cmd = cmd.substring(cmd.indexOf(" ") + 1)
-	
+	cmd = cmd.substring(cmd.indexOf(" ") + 1) // Remove the mention (i.e. <@screambotsid>)
 	console.info(`Command: ${cmd}`)
-
 	const firstSpaceIndex = cmd.indexOf(" ")
+	let args = cmd.substring(firstSpaceIndex + 1) // Everything after the first word
+	cmd = cmd.substring(0, firstSpaceIndex) // Just the first word
 
-	// Everything after the first word
-	let args = cmd.substring(firstSpaceIndex + 1)
-
-	// Just the first word
-	cmd = cmd.substring(0, firstSpaceIndex)
-
-	if (["admin", "dev"].includes(rank)) {
+	if (rank >= 1) { // Admin (and up) commands
 		switch (cmd) {
 			case "shutdown":
+				sayIn(message.channel, "Shutting down.")
+					.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent the message, "${message.content}".`))
+					.catch(err => logError(err))
 				process.exit(args)
 				return true
 		}
 	}
-	if ("dev" == rank) {
+	if (rank >= 2) { // Dev (and up) commands
 		switch (cmd) {
 
 			case "say":
 				sayIn(message.channel, args)
+					.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent the message, "${message.content}".`))
+					.catch(err => logError(err))
 				return true
 
 			case "sayin":
-				const chidIndex = args.indexOf(" ")
 				// First argument: first word (a Channel ID)
 				// Second argument: everything after first word (what to say)
 				sayIn(args.substring(0, chidIndex), args.substring(chidIndex + 1))
+					.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent the message, "${message.content}".`))
+					.catch(err => logError(err))
 				return true
 
 			case "reply":
 				message.reply(args)
+					.then(console.log(`[${ch.guild.name} - ${channel.name}] Replied with the message, "${message.content}".`))
+					.catch(err => logError(err))
 				return true
 
 			case "screamnow":
 				screamIn(message.channel)
+					.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent a ${message.content.length}-character long scream.`))
+					.catch(err => logError(err))
 				return true
 
 			case "screamin":
-				screamIn(client.channels.get(args))
+				const ch = client.channels.get(args)
+				if (ch)
+					screamIn(ch)
+						.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent a ${message.content.length}-character long scream.`))
+						.catch(err => logError(err))
+				else
+					sayIn(message.channel, "I'm not allowed in that channel.")
+
 				return true
 
-			//case "eval":
+			//case "eval": // I want this to eval JS but I couldn't figure out how to get it to work right. maybe its for the better
 			//	message.reply(eval(args))
 			//	return true
 
-			//case "join":
+			//case "join": // For VC if I ever figure that out
 				
 		}
 	}
