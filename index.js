@@ -327,13 +327,13 @@ function loadRanks(buffer, firstTime) {
 	}
 
 	// Print ranking members
-	Object.keys(ranks).forEach( rankName => {
+	for (rankName in ranks) {
 		console.info(`${rankName}:`)
-		Object.keys(ranks[rankName]).forEach ( userName => {
+		for (userName in ranks[rankName]) {
 			console.info(`    ${userName}`)
-		})
+		}
 		console.info()
-	})
+	}
 
 	console.log(`Ranks successfully ${(firstTime) ? "" : "re"}loaded.`)
 }
