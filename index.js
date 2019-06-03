@@ -454,7 +454,7 @@ function command(message) { try {
 		switch (cmd) {
 			case "shutdown":
 				sayIn(message.channel, "Shutting down.")
-					.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent the message, "${message.content}".`))
+					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the message, "${message.content}".`))
 					.catch(err => logError(err))
 				process.exit(args)
 				return true
@@ -465,28 +465,21 @@ function command(message) { try {
 
 			case "say":
 				sayIn(message.channel, args)
-					.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent the message, "${message.content}".`))
+					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the message, "${message.content}".`))
 					.catch(err => logError(err))
 				return true
 
 			case "sayin":
 				const chidIndex = args.indexOf(" ")
-				// First argument: first word (a Channel ID)
-				// Second argument: everything after first word (what to say)
-				sayIn(args.substring(0, chidIndex), args.substring(chidIndex + 1))
-					.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent the message, "${message.content}".`))
+				const chId = args.substring(0, chidIndex)
+				sayIn(client.channels.get(chId), args.substring(chidIndex + 1))
+					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the message, "${message.content}".`))
 					.catch(err => logError(err))
 				return true
 
 			case "reply":
 				message.reply(args)
-					.then(console.log(`[${ch.guild.name} - ${channel.name}] Replied with the message, "${message.content}".`))
-					.catch(err => logError(err))
-				return true
-
-			case "screamnow":
-				screamIn(message.channel)
-					.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent a ${message.content.length}-character long scream.`))
+					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Replied with the message, "${message.content}".`))
 					.catch(err => logError(err))
 				return true
 
@@ -494,7 +487,7 @@ function command(message) { try {
 				const ch = client.channels.get(args)
 				if (ch)
 					screamIn(ch)
-						.then(console.log(`[${ch.guild.name} - ${channel.name}] Sent a ${message.content.length}-character long scream.`))
+						.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent a ${message.content.length}-character long scream.`))
 						.catch(err => logError(err))
 				else
 					sayIn(message.channel, "I'm not allowed in that channel.")
