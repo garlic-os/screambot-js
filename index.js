@@ -470,6 +470,7 @@ function command(message) { try {
 				return true
 
 			case "sayin":
+				const chidIndex = args.indexOf(" ")
 				// First argument: first word (a Channel ID)
 				// Second argument: everything after first word (what to say)
 				sayIn(args.substring(0, chidIndex), args.substring(chidIndex + 1))
