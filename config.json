@@ -17,7 +17,7 @@
 			"nickname": "Screamso"
 		}
 	},
-	"randomreplychance": 1,
+	"randomreplychance": 0.5,
 	"donotreply": {
 		"Screambot": "574092583014236160",
 		"Screambot BETA": "576225144125652999"
