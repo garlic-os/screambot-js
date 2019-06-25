@@ -41,6 +41,7 @@
  *        - variables
  *        - functions
  *        - methods
+ *    - Fix chat commands
  */
 
 
@@ -48,12 +49,12 @@
 const fs = require("fs")
 const Discord = require("discord.js")
 
-// Uncomment to add log types ([LOG], [ERROR], etc.)
-/*require("console-stamp")(console, {
+// Makes the logs look nice
+require("console-stamp")(console, {
 	datePrefix: "",
 	dateSuffix: "",
 	pattern: " "
-})*/
+})
 
 
 
@@ -64,6 +65,7 @@ const client = new Discord.Client()
 // Shameful global variables
 global.config = {}
 global.ranks  = {}
+//global.voice;
 
 // Load then watch for changes in the command list
 loadRanks(fs.readFileSync(process.env.RANKS_PATH), true)
@@ -300,6 +302,10 @@ function loadConfig(buffer, firstTime) {
 
 	})
 
+	//if (!firstTime) {
+	//	voice.setVoiceChannelList(config.voicechannels)
+	//}
+
 	console.log(`Config successfully ${(firstTime) ? "" : "re"}loaded.`)
 }
 
@@ -388,7 +394,7 @@ function sayIn(ch, msg) { return new Promise( (resolve, reject) => {
 			.then(message => resolve(message))
 			.catch(err => reject(err))
 	} else {
-		reject(`Screambot is not allowed to scream in the channel with the ID ${ch.id}.`)
+		reject(`Screambot is not allowed to scream in [${ch.name} - ${ch.id}].`)
 	}
 })}
 
@@ -421,7 +427,6 @@ function isDev(authorId) {
  * 
  * Returns true if a command was executed
  * Returns false if no command was executed
- *   or if the author was not a ranked official
  * 
  * Command syntax:
  * "@Screambot [command] [args space delimited]"
@@ -440,8 +445,7 @@ function command(message) { try {
 	const authorId = message.author.id
 	let rank = 0
 	if      (isAdmin(authorId)) rank = 1 // Admin = 1
-	else if (isDev(authorId))   rank = 2 // Dev   = 2
-	if (rank <= 0) return false
+	else if (isDev  (authorId)) rank = 2 // Dev   = 2
 
 	let cmd = message.content
 	cmd = cmd.substring(cmd.indexOf(" ") + 1) // Remove the mention (i.e. <@screambotsid>)
@@ -450,6 +454,11 @@ function command(message) { try {
 	let args = cmd.substring(firstSpaceIndex + 1) // Everything after the first word
 	cmd = cmd.substring(0, firstSpaceIndex) // Just the first word
 
+
+	//switch (cmd) {
+	//	case "aalb":
+
+	//}
 	if (rank >= 1) { // Admin (and up) commands
 		switch (cmd) {
 			case "shutdown":
@@ -585,4 +594,3 @@ function channelIdIsAllowed(channelId) {
 	}
 	return false
 }
-
