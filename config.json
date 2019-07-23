@@ -9,11 +9,18 @@
 		},
 		"/r/Ooer - #botspam": {
 			"id": "325969983441993729"
+		},
+		"lh": {
+			"id": "597957895157579791"
 		}
 	},
 	"servernicks": {
 		"/r/Ooer": { 
 			"id": "280298381807714304",
+			"nickname": "Screamso"
+		},
+		"lh": {
+			"id": "597957895157579787",
 			"nickname": "Screamso"
 		}
 	},
