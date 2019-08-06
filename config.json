@@ -15,6 +15,9 @@
 		},
 		"JuiceBux's request": {
 			"id": "521666776317296643"
+		},
+		"Spacemace - #general": {
+			"id": "608422929952145454"
 		}
 	},
 	"servernicks": {
@@ -25,6 +28,9 @@
 		"JuiceBux's request": {
 			"id": "521666776317296640",
 			"nickname": "Screamso"
+		},
+		"Spacemace": {
+			"id": "608422929952145444"
 		}
 	},
 	"randomreplychance": 0.5,
