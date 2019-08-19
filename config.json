@@ -1,6 +1,9 @@
 {
 	"name": "Screambot",
 	"channels": {
+		"screambot test server - #general": {
+			"id": "576212353390215180"
+		},
 		"trash can - #general": {
 			"id": "487458564810473475"
 		},
