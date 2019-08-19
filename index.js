@@ -22,11 +22,11 @@
  *        - Thank you
  * 
  *  TODO:
+ *    - Scream in PMs
  *    - Scream in VC (https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md)
- *    - Re-order methods
- *    - Ranks: go by server roles, when possible, instead of hard-coded UIDs
- *    - See if I can replace "err => logError(err)" with just "logError", etc.
- *    - Use promises for the load functions
+ *    - Put the functions in a more sensible order
+ *    - Ranks: go by server roles, when possible, instead of hard-coded userIds
+ *    - Make things more asynchronous
  *    - Add scream variations (maybe?)
  *        - Ending h's
  *        - Ending rgh
@@ -41,7 +41,6 @@
  *        - variables
  *        - functions
  *        - methods
- *    - Fix chat commands
  */
 
 
@@ -65,7 +64,6 @@ const client = new Discord.Client()
 // Shameful global variables
 global.config = {}
 global.ranks  = {}
-//global.voice;
 
 // Load then watch for changes in the command list
 loadRanks(fs.readFileSync(process.env.RANKS_PATH), true)
@@ -84,7 +82,7 @@ client.on("ready", () => {
 	console.log(`Logged in as ${client.user.tag}.\n`)
 	pmTheDevs("Logged in.")
 
-	// Load then watch for changes in the config file
+	// Load, then watch for changes in, the config file
 	loadConfig(fs.readFileSync(process.env.CONFIG_PATH), true)
 	fs.watchFile(process.env.CONFIG_PATH, () => {
 		loadConfig(fs.readFileSync(process.env.CONFIG_PATH), false)
@@ -94,7 +92,7 @@ client.on("ready", () => {
 
 	// Set the title of the "game" Screambot is "playing"
 	client.user.setActivity(config.activity)
-		.catch(err => logError(err))
+		.catch(logError)
 
 	console.log() // New line
 
@@ -124,12 +122,12 @@ client.on("message", message => {
 
 					screamIn(message.channel)
 						.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
-						.catch(err => logError(err))
+						.catch(logError)
 				}
 			}
 
 			// Someone screams who is neither on the donotreply list nor Screambot itself
-			else if ((message.content.toUpperCase().includes("AAA"))
+			else if ((isScream(message.content))
 			&& (message.author != client.user)) {
 				if (message.channel.type == "dm")
 					console.log(`[Direct message] ${message.author.username} has screamed at Screambot.`)
@@ -137,7 +135,7 @@ client.on("message", message => {
 					console.log(`[${message.guild.name} - #${message.channel.name}] ${message.author.username} has screamed.`)
 				screamIn(message.channel)
 					.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
-					.catch(err => logError(err))
+					.catch(logError)
 			}
 
 			// If the message is nothing special, maybe scream anyway
@@ -149,7 +147,7 @@ client.on("message", message => {
 						console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has randomly decided to reply to ${message.author.username}'s message.`)
 					screamIn(message.channel)
 						.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
-						.catch(err => logError(err))
+						.catch(logError)
 				}
 			}
 		}
@@ -217,12 +215,12 @@ process.on("exit", code => {
 	pmTheDevs("Logging out.")
 
 	client.user.setActivity("SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-		.catch(err => logError(err))
+		.catch(logError)
 
 	console.warn("Logging out...")
 	client.destroy()
 		.then(console.warn("Logged out."))
-		.catch(err => logError(err))
+		.catch(logError)
 
 	console.warn("---------------------------------\n")
 })
@@ -240,13 +238,14 @@ process.on("exit", code => {
 function loadConfig(buffer, firstTime) {
 	/**
 	 * Is Servernick For ID
-	 * Bro not even I know how this works
-	 * It just does something and now it can't give
+	 * I don't know how this works
+	 * It just does something and now Screambot can't give
 	 *   itself custom nicknames without it
 	 */
 	function _isServerNickForId(servernicks, serverId) {
 		let sn
-		for (let i=0; i<servernicks.length; i++) {
+		let i
+		for (i=0; i<servernicks.length; i++) {
 			sn = servernicks[i]
 			if (sn.id == serverId)
 				return sn
@@ -273,14 +272,14 @@ function loadConfig(buffer, firstTime) {
 	}
 
 	// Print registered channels
-	const chNames = Object.keys(config.channels)
-	if (chNames.length == 0) {
+	if (Object.keys(config.channels).length == 0) {
 		console.warn("No channels specified to scream in.")
 	} else {
 		console.info("Channels:")
-		chNames.forEach( chName => {
+		let chName
+		for (chName in config.channels) {
 			console.info(`    ${chName} (ID: ${config.channels[chName].id})`)
-		})
+		}
 		console.info()
 	}
 
@@ -294,10 +293,10 @@ function loadConfig(buffer, firstTime) {
 		if (sn != false) {
 			server.me.setNickname(sn.nickname)
 				.then(console.log(`Custom nickname in server ${sn.id}: ${sn.nickname}.\n`))
-				.catch(err => logError(err))
+				.catch(logError)
 		} else {
 			server.me.setNickname(config.name)
-				.catch(err => logError(err))
+				.catch(logError)
 		}
 
 	})
@@ -377,8 +376,8 @@ function randomReplyChance() {
  */
 function screamIn(ch) { return new Promise( (resolve, reject) => {
 	sayIn(ch, generateScream())
-		.then(message => resolve(message))
-		.catch(err => reject(err))
+		.then(resolve)
+		.catch(reject)
 })}
 
 
@@ -391,8 +390,8 @@ function screamIn(ch) { return new Promise( (resolve, reject) => {
 function sayIn(ch, msg) { return new Promise( (resolve, reject) => {
 	if (channelIdIsAllowed(ch.id) || ch.type == "dm") {
 		ch.send(msg)
-			.then(message => resolve(message))
-			.catch(err => reject(err))
+			.then(resolve)
+			.catch(reject)
 	} else {
 		reject(`Screambot is not allowed to scream in [${ch.name} - ${ch.id}].`)
 	}
@@ -403,8 +402,8 @@ function sayIn(ch, msg) { return new Promise( (resolve, reject) => {
  * Is Admin
  * Checks if the given user ID matches an admin in the config file
  */
-function isAdmin(authorId) {
-	return (Object.values(ranks.admins).includes(authorId))
+function isAdmin(userId) {
+	return (Object.values(ranks.admins).includes(userId))
 }
 
 
@@ -412,8 +411,8 @@ function isAdmin(authorId) {
  * Is Dev
  * Checks if the given user ID matches a dev in the config file
  */
-function isDev(authorId) {
-	return (Object.values(ranks.devs).includes(authorId))
+function isDev(userId) {
+	return (Object.values(ranks.devs).includes(userId))
 }
 
 
@@ -454,17 +453,18 @@ function command(message) { try {
 	let args = cmd.substring(firstSpaceIndex + 1) // Everything after the first word
 	cmd = cmd.substring(0, firstSpaceIndex) // Just the first word
 
+	// -- COMMAND LIST --
 
-	//switch (cmd) {
-	//	case "aalb":
+	//switch (cmd) { // anybody commands (none right now)
+	//	case "asdf":
 
 	//}
 	if (rank >= 1) { // Admin (and up) commands
 		switch (cmd) {
 			case "shutdown":
-				sayIn(message.channel, "Shutting down.")
-					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the message, "${message.content}".`))
-					.catch(err => logError(err))
+				sayIn(message.channel, "AAAAAAAAAAA SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the shutdown message, "${message.content}".`))
+					.catch(logError)
 				process.exit(args)
 				return true
 		}
@@ -475,31 +475,31 @@ function command(message) { try {
 			case "say":
 				sayIn(message.channel, args)
 					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the message, "${message.content}".`))
-					.catch(err => logError(err))
+					.catch(logError)
 				return true
 
 			case "sayin":
 				const chidIndex = args.indexOf(" ")
 				const chId = args.substring(0, chidIndex)
 				sayIn(client.channels.get(chId), args.substring(chidIndex + 1))
-					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the message, "${message.content}".`))
-					.catch(err => logError(err))
+					.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Sent the message, "${message.content}".`))
+					.catch(logError)
 				return true
 
 			case "reply":
 				message.reply(args)
-					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Replied with the message, "${message.content}".`))
-					.catch(err => logError(err))
+					.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Replied with the message, "${message.content}".`))
+					.catch(logError)
 				return true
 
 			case "screamin":
 				const ch = client.channels.get(args)
 				if (ch)
 					screamIn(ch)
-						.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent a ${message.content.length}-character long scream.`))
-						.catch(err => logError(err))
+						.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Sent a ${message.content.length}-character long scream.`))
+						.catch(logError)
 				else
-					sayIn(message.channel, "I'm not allowed in that channel.")
+					sayIn(message.channel, `AAAAAA I'M NOT ALLOWED THERE AAAAAAAAAAAAAAAAAAAAAAAA`)
 
 				return true
 
@@ -566,7 +566,7 @@ function pm(user, string) { return new Promise( (resolve, reject) => {
 
 	user.send(string)
 		.then(resolve( { user: user, string: string } ))
-		.catch(err => reject(err))
+		.catch(reject)
 })}
 
 
@@ -575,22 +575,38 @@ function pm(user, string) { return new Promise( (resolve, reject) => {
  * Sends a PM to everyone in the dev list
  */
 function pmTheDevs(string) {
-	Object.values(ranks.devs).forEach( uid => {
-		pm(client.users.get(uid), string)
+	for (let userId of Object.values(ranks.devs)) {
+		pm(client.users.get(userId), string)
 			.catch(console.error)
-	})
+	}
 }
 
 
 /**
+ * Channel ID is Allowed
  * Returns whether a channel ID is in
  *   the list of channels in the config file
  */
 function channelIdIsAllowed(channelId) {
 	let channels = Object.values(config.channels)
-	for (let i=0; i<channels.length; i++) {
+	let i
+	for (i=0; i<channels.length; i++) {
 		if (channels[i].id == channelId)
 			return true
 	}
 	return false
 }
+
+
+/**
+ * Is Scream
+ * Returns whether the provided string
+ *   is considered a scream or not
+ * Putting it here in its own place
+ *   makes it easier to make the scream
+ *   condition more complex
+ */
+function isScream(string) {
+	return (string.toUpperCase().includes("AAA"))
+}
+
