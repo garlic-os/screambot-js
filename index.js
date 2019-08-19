@@ -41,6 +41,7 @@
  *        - variables
  *        - functions
  *        - methods
+ *    - Fix chat commands
  */
 
 
@@ -393,7 +394,7 @@ function sayIn(ch, msg) { return new Promise( (resolve, reject) => {
 			.then(resolve)
 			.catch(reject)
 	} else {
-		reject(`Screambot is not allowed to scream in [${ch.name} - ${ch.id}].`)
+		reject(`Screambot is not allowed to scream in [${ch.name} - #${ch.id}].`)
 	}
 })}
 
@@ -463,7 +464,7 @@ function command(message) { try {
 		switch (cmd) {
 			case "shutdown":
 				sayIn(message.channel, "AAAAAAAAAAA SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the shutdown message, "${message.content}".`))
+					.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Sent the shutdown message, "${message.content}".`))
 					.catch(logError)
 				process.exit(args)
 				return true
@@ -474,7 +475,7 @@ function command(message) { try {
 
 			case "say":
 				sayIn(message.channel, args)
-					.then(message => console.log(`[${message.guild.name} - ${message.channel.name}] Sent the message, "${message.content}".`))
+					.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Sent the message, "${message.content}".`))
 					.catch(logError)
 				return true
 
@@ -609,4 +610,3 @@ function channelIdIsAllowed(channelId) {
 function isScream(string) {
 	return (string.toUpperCase().includes("AAA"))
 }
-
