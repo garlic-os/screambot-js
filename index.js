@@ -361,8 +361,8 @@ function randomReplyChance() {
  * Generates a scream with generateScream()
  *   and sends it to the given channel with sayIn()
  */
-function screamIn(ch) { return new Promise( (resolve, reject) => {
-	sayIn(ch, generateScream())
+function screamIn(channel) { return new Promise( (resolve, reject) => {
+	sayIn(channel, generateScream())
 		.then(resolve)
 		.catch(reject)
 })}
@@ -374,13 +374,13 @@ function screamIn(ch) { return new Promise( (resolve, reject) => {
  * Rejects if the channel is not whitelisted
  *   or if the send command screws up 
  */
-function sayIn(ch, msg) { return new Promise( (resolve, reject) => {
-	if (channelIdIsAllowed(ch.id) || ch.type == "dm") {
-		ch.send(msg)
+function sayIn(channel, string) { return new Promise( (resolve, reject) => {
+	if (channelIdIsAllowed(channel.id) || channel.type == "dm") {
+		channel.send(string)
 			.then(resolve)
 			.catch(reject)
 	} else {
-		reject(`Screambot is not allowed to scream in ${locationString(message)}.`)
+		reject(`Screambot is not allowed to scream in [${channel.guild.name} - #${channel.name}].`)
 	}
 })}
 
@@ -431,9 +431,7 @@ function command(message) { try {
 	let cmd = message.content
 	cmd = cmd.substring(cmd.indexOf(" ") + 1) // Remove the mention (i.e. <@screambotsid>)
 	console.info(`Command: ${cmd}`)
-	const firstSpaceIndex = cmd.indexOf(" ")
-	let args = cmd.substring(firstSpaceIndex + 1) // Everything after the first word
-	cmd = cmd.substring(0, firstSpaceIndex) // Just the first word
+	cmd = cmd.split(" ")
 
 	// -- COMMAND LIST --
 
@@ -442,7 +440,7 @@ function command(message) { try {
 
 	//}
 	if (rank >= 1) { // Admin (and up) commands
-		switch (cmd) {
+		switch (cmd[0]) {
 			case "shutdown":
 				sayIn(message.channel, "AAAAAAAAAAA SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 					.then(message => console.log(`${locationString(message)} Sent the shutdown message, "${message.content}".`))
@@ -452,37 +450,34 @@ function command(message) { try {
 		}
 	}
 	if (rank >= 2) { // Dev (and up) commands
-		switch (cmd) {
+		switch (cmd.shift()) {
 
 			case "say":
-				sayIn(message.channel, args)
+				sayIn(message.channel, cmd.join(" "))
 					.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
 					.catch(logError)
 				return true
 
 			case "sayin":
-				const chidIndex = args.indexOf(" ")
-				const chId = args.substring(0, chidIndex)
-				sayIn(client.channels.get(chId), args.substring(chidIndex + 1))
+				sayIn(client.channels.get(cmd.shift()), cmd.join(" "))
 					.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
 					.catch(logError)
 				return true
 
 			case "reply":
-				message.reply(args)
-					.then(message => console.log(`locationString(message) Replied with the message, "${message.content}".`))
+				message.reply(cmd.join(" "))
+					.then(message => console.log(`${locationString(message)} Replied with the message, "${message.content}".`))
 					.catch(logError)
 				return true
 
 			case "screamin":
-				const ch = client.channels.get(args)
-				if (ch)
-					screamIn(ch)
+				const channel = client.channels.get(cmd.join(" "))
+				if (channelIdIsAllowed(channel.id))
+					screamIn(client.channels.get(cmd.join(" ")))
 						.then(message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`))
 						.catch(logError)
 				else
 					sayIn(message.channel, `AAAAAA I'M NOT ALLOWED THERE AAAAAAAAAAAAAAAAAAAAAAAA`)
-
 				return true
 
 			//case "eval": // I want this to eval JS but I couldn't figure out how to get it to work right. maybe its for the better
@@ -571,7 +566,7 @@ function dmTheDevs(string) {
  */
 function channelIdIsAllowed(channelId) {
 	for (let channel of Object.values(config.channels)) {
-		if (channel === channelId)
+		if (channel.id === channelId)
 			return true
 	}
 	return false
@@ -602,6 +597,6 @@ function locationString(message) {
 	if (message.channel.type == "dm")
 		return `[Direct message]`
 	else
-		return `${locationString(message)}`
+		return `[${message.guild.name} - #${message.channel.name}]`
 
 }
