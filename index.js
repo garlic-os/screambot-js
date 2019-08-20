@@ -22,7 +22,6 @@
  *        - Thank you
  * 
  *  TODO:
- *    - Scream in PMs
  *    - Scream in VC (https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md)
  *    - Put the functions in a more sensible order
  *    - Ranks: go by server roles, when possible, instead of hard-coded userIds
@@ -41,7 +40,6 @@
  *        - variables
  *        - functions
  *        - methods
- *    - Fix chat commands
  */
 
 
@@ -81,15 +79,13 @@ client.on("ready", () => {
 	 *   logs into Discord
 	 */
 	console.log(`Logged in as ${client.user.tag}.\n`)
-	pmTheDevs("Logged in.")
+	dmTheDevs("Logged in.")
 
 	// Load, then watch for changes in, the config file
 	loadConfig(fs.readFileSync(process.env.CONFIG_PATH), true)
 	fs.watchFile(process.env.CONFIG_PATH, () => {
 		loadConfig(fs.readFileSync(process.env.CONFIG_PATH), false)
 	})
-
-	//global.voice = new VoiceModule(client.createVoiceBroadcast, client.channels, config.voicechannels)
 
 	// Set the title of the "game" Screambot is "playing"
 	client.user.setActivity(config.activity)
@@ -111,15 +107,16 @@ client.on("ready", () => {
 client.on("message", message => {
 	try {
 
-		if ((!inDoNotReply(message.author.id)) && (channelIdIsAllowed(message.channel.id))) {
+		if (
+			(!inDoNotReply(message.author.id)) &&
+			((channelIdIsAllowed(message.channel.id)) || // ugh
+				(message.channel.type == "dm"))
+		) {
 
 			// Pinged
 			if (message.isMentioned(client.user)) {
 				if (!command(message)) {
-					if (message.channel.type == "dm")
-						console.log(`[Direct message] Screambot has been pinged by ${message.author.username}.`)
-					else
-						console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has been pinged by ${message.author.username}.`)
+					console.log(`${locationString(message)} Screambot has been pinged by ${message.author.username}.`)
 
 					screamIn(message.channel)
 						.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
@@ -130,22 +127,24 @@ client.on("message", message => {
 			// Someone screams who is neither on the donotreply list nor Screambot itself
 			else if ((isScream(message.content))
 			&& (message.author != client.user)) {
-				if (message.channel.type == "dm")
-					console.log(`[Direct message] ${message.author.username} has screamed at Screambot.`)
-				else
-					console.log(`[${message.guild.name} - #${message.channel.name}] ${message.author.username} has screamed.`)
+				console.log(`${locationString(message)} ${message.author.username} has screamed.`)
 				screamIn(message.channel)
 					.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
 					.catch(logError)
 			}
 
+			// Always scream at DM's
+			else if (message.channel.type == "dm") {
+				console.log(`[Direct message] ${message.author.username} sent Screambot a DM.`)
+				screamIn(message.channel)
+					.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
+					.catch(logError)
+			}
+			
 			// If the message is nothing special, maybe scream anyway
 			else {
 				if (randomReplyChance()) {
-					if (message.channel.type == "dm")
-						console.log(`[Direct message] Screambot has randomly decided to reply to ${message.author.username}'s message.`)
-					else
-						console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has randomly decided to reply to ${message.author.username}'s message.`)
+					console.log(`${locationString(message)} Screambot has randomly decided to reply to ${message.author.username}'s message.`)
 					screamIn(message.channel)
 						.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
 						.catch(logError)
@@ -213,7 +212,7 @@ process.on("exit", code => {
 	console.warn("---------------------------------")
 	console.warn(`About to exit with code: ${code}`)
 
-	pmTheDevs("Logging out.")
+	dmTheDevs("Logging out.")
 
 	client.user.setActivity("SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 		.catch(logError)
@@ -257,7 +256,7 @@ function loadConfig(buffer, firstTime) {
 
 	if (!firstTime) {
 		console.info("Config file has been changed.")
-		pmTheDevs("The config file has been changed.")
+		dmTheDevs("The config file has been changed.")
 	}
 
 	console.log(`${(firstTime) ? "L" : "Rel"}oading config...`)
@@ -318,7 +317,7 @@ function loadConfig(buffer, firstTime) {
 function loadRanks(buffer, firstTime) {
 	if (!firstTime) {
 		console.info("The rank file has been changed.")
-		pmTheDevs("The rank file has been changed.")
+		dmTheDevs("The rank file has been changed.")
 	}
 
 	console.log(`${(firstTime) ? "L" : "Rel"}oading ranks...`)
@@ -394,7 +393,7 @@ function sayIn(ch, msg) { return new Promise( (resolve, reject) => {
 			.then(resolve)
 			.catch(reject)
 	} else {
-		reject(`Screambot is not allowed to scream in [${ch.name} - #${ch.id}].`)
+		reject(`Screambot is not allowed to scream in ${locationString(message)}.`)
 	}
 })}
 
@@ -433,13 +432,8 @@ function isDev(userId) {
  */
 function command(message) { try {
 	if (!message.content.includes(" ")) return false
-
-	if (message.channel.type == "dm")
-		console.log(`[Direct message] Screambot has received a command from ${message.author.username}.`)
-	else
-		console.log(`[${message.guild.name} - #${message.channel.name}] Screambot has received a command from ${message.author.username}.`)
-
-
+	
+	console.log(`${locationString(message)} Screambot has received a command from ${message.author.username}.`)
 
 	// Rank check
 	const authorId = message.author.id
@@ -464,7 +458,7 @@ function command(message) { try {
 		switch (cmd) {
 			case "shutdown":
 				sayIn(message.channel, "AAAAAAAAAAA SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-					.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Sent the shutdown message, "${message.content}".`))
+					.then(message => console.log(`${locationString(message)} Sent the shutdown message, "${message.content}".`))
 					.catch(logError)
 				process.exit(args)
 				return true
@@ -475,7 +469,7 @@ function command(message) { try {
 
 			case "say":
 				sayIn(message.channel, args)
-					.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Sent the message, "${message.content}".`))
+					.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
 					.catch(logError)
 				return true
 
@@ -483,13 +477,13 @@ function command(message) { try {
 				const chidIndex = args.indexOf(" ")
 				const chId = args.substring(0, chidIndex)
 				sayIn(client.channels.get(chId), args.substring(chidIndex + 1))
-					.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Sent the message, "${message.content}".`))
+					.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
 					.catch(logError)
 				return true
 
 			case "reply":
 				message.reply(args)
-					.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Replied with the message, "${message.content}".`))
+					.then(message => console.log(`locationString(message) Replied with the message, "${message.content}".`))
 					.catch(logError)
 				return true
 
@@ -497,7 +491,7 @@ function command(message) { try {
 				const ch = client.channels.get(args)
 				if (ch)
 					screamIn(ch)
-						.then(message => console.log(`[${message.guild.name} - #${message.channel.name}] Sent a ${message.content.length}-character long scream.`))
+						.then(message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`))
 						.catch(logError)
 				else
 					sayIn(message.channel, `AAAAAA I'M NOT ALLOWED THERE AAAAAAAAAAAAAAAAAAAAAAAA`)
@@ -528,21 +522,21 @@ function inDoNotReply(userId) {
 
 /**
  * Log Error
- * PM's the dev(s) a string
+ * DM's the dev(s) a string
  * Then console.error()'s that string
  * 
  * For nonfatal errors
  */
 function logError(err) {
 	console.error(err)
-	pmTheDevs(`ERROR! ${err}`)
+	dmTheDevs(`ERROR! ${err}`)
 }
 
 
 /**
  * Crash with
  * Logs the error object
- * PM's the devs the error object
+ * DM's the devs the error object
  * Exits
  * Throws the error
  * 
@@ -556,10 +550,10 @@ function crashWith(err) {
 
 
 /**
- * PM
- * It PM's someone.
+ * DM
+ * It DM's someone.
  */
-function pm(user, string) { return new Promise( (resolve, reject) => {
+function dm(user, string) { return new Promise( (resolve, reject) => {
 	if (user === undefined) {
 		reject(`User is undefined.`)
 		return
@@ -572,12 +566,12 @@ function pm(user, string) { return new Promise( (resolve, reject) => {
 
 
 /**
- * PM the Devs
- * Sends a PM to everyone in the dev list
+ * DM the Devs
+ * Sends a DM to everyone in the dev list
  */
-function pmTheDevs(string) {
+function dmTheDevs(string) {
 	for (let userId of Object.values(ranks.devs)) {
-		pm(client.users.get(userId), string)
+		dm(client.users.get(userId), string)
 			.catch(console.error)
 	}
 }
@@ -589,10 +583,8 @@ function pmTheDevs(string) {
  *   the list of channels in the config file
  */
 function channelIdIsAllowed(channelId) {
-	let channels = Object.values(config.channels)
-	let i
-	for (i=0; i<channels.length; i++) {
-		if (channels[i].id == channelId)
+	for (let channel of Object.values(config.channels)) {
+		if (channel === channelId)
 			return true
 	}
 	return false
@@ -609,4 +601,20 @@ function channelIdIsAllowed(channelId) {
  */
 function isScream(string) {
 	return (string.toUpperCase().includes("AAA"))
+}
+
+
+/**
+ * Location string
+ * A syntactic shortcut for when a
+ *   callback or promise from a message 
+ *   wants to log where Screambot sent
+ *   a message
+ */
+function locationString(message) {
+	if (message.channel.type == "dm")
+		return `[Direct message]`
+	else
+		return `${locationString(message)}`
+
 }
