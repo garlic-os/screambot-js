@@ -237,18 +237,15 @@ process.on("exit", code => {
  */
 function loadConfig(buffer, firstTime) {
 	/**
-	 * Is Servernick For ID
-	 * I don't know how this works
-	 * It just does something and now Screambot can't give
-	 *   itself custom nicknames without it
+	 * (Private function)
+	 * Get Nickname
+	 * Returns the nickname corresponding
+	 *   to the given server
 	 */
-	function _isServerNickForId(servernicks, serverId) {
-		let sn
-		let i
-		for (i=0; i<servernicks.length; i++) {
-			sn = servernicks[i]
-			if (sn.id == serverId)
-				return sn
+	function _getNickname(nicknames, serverId) {
+		for (let nickname of nicknames) {
+			if (nickname.id == serverId)
+				return nickname
 		}
 		return false
 	}
@@ -283,27 +280,17 @@ function loadConfig(buffer, firstTime) {
 		console.info()
 	}
 
-
-	// Server-specific nicknames
-	const servernicks = Object.values(config.servernicks)
-	let sn
-
-	client.guilds.tap( server => {
-		sn = _isServerNickForId(servernicks, server.id)
-		if (sn != false) {
-			server.me.setNickname(sn.nickname)
-				.then(console.log(`Custom nickname in server ${sn.id}: ${sn.nickname}.\n`))
-				.catch(logError)
-		} else {
-			server.me.setNickname(config.name)
+	// Nicknames
+	const nicknames = Object.values(config.nicknames)
+	client.guilds.tap(server => { // Don't ask me what tap means
+		let nickname = _getNickname(nicknames, server.id)
+		if (nickname) {
+			server.me.setNickname(nickname.name)
+				.then(console.log(`Custom nickname in ${client.guilds.get(nickname.id)}: ${nickname.name}.\n`))
 				.catch(logError)
 		}
 
 	})
-
-	//if (!firstTime) {
-	//	voice.setVoiceChannelList(config.voicechannels)
-	//}
 
 	console.log(`Config successfully ${(firstTime) ? "" : "re"}loaded.`)
 }
