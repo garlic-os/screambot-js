@@ -336,14 +336,14 @@ function loadRanks(buffer, firstTime) {
  * Generates a 1-100 character string of capital A's
  */
 function generateScream() {
-	let min = 1
-	let max = 100
+	const min = 1
+	const max = 25
 
 	let a = Math.floor(Math.random() * (max-min)) + min
 	let scream = ""
 
 	while (a > 0) {
-		scream += "A"
+		scream += "grunka "
 		a--
 	}
 
