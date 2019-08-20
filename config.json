@@ -1,5 +1,5 @@
 {
-	"name": "Screambot",
+	"activity": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 	"channels": {
 		"screambot test server - #general": {
 			"id": "576212353390215180"
@@ -20,16 +20,15 @@
 			"id": "521666776317296643"
 		}
 	},
-	"servernicks": {
+	"nicknames": {
 		"/r/Ooer": { 
 			"id": "280298381807714304",
-			"nickname": "OoerBot Ⓐ"
+			"name": "OoerBot Ⓐ"
 		}
 	},
 	"randomreplychance": 0.5,
 	"donotreply": {
 		"Screambot": "574092583014236160",
 		"Screambot BETA": "576225144125652999"
-	},
-	"activity": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	}
 }
