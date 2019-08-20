@@ -337,13 +337,13 @@ function loadRanks(buffer, firstTime) {
  */
 function generateScream() {
 	const min = 1
-	const max = 25
+	const max = 100
 
 	let a = Math.floor(Math.random() * (max-min)) + min
 	let scream = ""
 
 	while (a > 0) {
-		scream += "grunka "
+		scream += "A"
 		a--
 	}
 
