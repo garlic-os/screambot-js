@@ -343,10 +343,13 @@ function generateScream() {
 	let a = Math.floor(Math.random() * (max-min)) + min
 	let scream = ""
 	
-	const user = client.users.get("569575994504118292")
+	if (Math.random() > 0.5)
+		let user = "211110945718665216"
+	else
+		let user = "569575994504118292"
 
 	while (a > 0) {
-		scream += `HAPPY BIRTHDAY @Dayton Audio SUB-1200 Subwoofer#8631 ` // A
+		scream += `HAPPY BIRTHDAY <@${user}> ` // A
 		a--
 	}
 
