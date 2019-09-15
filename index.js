@@ -342,9 +342,11 @@ function generateScream() {
 
 	let a = Math.floor(Math.random() * (max-min)) + min
 	let scream = ""
+	
+	const user = client.users.get("569575994504118292")
 
 	while (a > 0) {
-		scream += "HAPPY BIRTHDAY @eggofreason#5447 " // A
+		scream += `HAPPY BIRTHDAY ${user} ` // A
 		a--
 	}
 
