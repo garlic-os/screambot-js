@@ -40,6 +40,7 @@
  *        - variables
  *        - functions
  *        - methods
+ *    - Change the scream on the fly, per server
  */
 
 
@@ -337,13 +338,13 @@ function loadRanks(buffer, firstTime) {
  */
 function generateScream() {
 	const min = 1
-	const max = 100
+	const max = 30 // 100
 
 	let a = Math.floor(Math.random() * (max-min)) + min
 	let scream = ""
 
 	while (a > 0) {
-		scream += "A"
+		scream += "HAPPY BIRTHDAY @eggofreason#5447 " // A
 		a--
 	}
 
