@@ -343,10 +343,11 @@ function generateScream() {
 	let a = Math.floor(Math.random() * (max-min)) + min
 	let scream = ""
 	
+	let user
 	if (Math.random() > 0.5)
-		let user = "211110945718665216"
+		user = "211110945718665216"
 	else
-		let user = "569575994504118292"
+		user = "569575994504118292"
 
 	while (a > 0) {
 		scream += `HAPPY BIRTHDAY <@${user}> ` // A
