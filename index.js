@@ -346,7 +346,7 @@ function generateScream() {
 	const user = client.users.get("569575994504118292")
 
 	while (a > 0) {
-		scream += `HAPPY BIRTHDAY ${user} ` // A
+		scream += `HAPPY BIRTHDAY @Dayton Audio SUB-1200 Subwoofer#8631 ` // A
 		a--
 	}
 
