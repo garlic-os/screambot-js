@@ -338,19 +338,13 @@ function loadRanks(buffer, firstTime) {
  */
 function generateScream() {
 	const min = 1
-	const max = 30 // 100
+	const max = 100
 
 	let a = Math.floor(Math.random() * (max-min)) + min
 	let scream = ""
-	
-	let user
-	if (Math.random() > 0.5)
-		user = "211110945718665216"
-	else
-		user = "569575994504118292"
 
 	while (a > 0) {
-		scream += `HAPPY BIRTHDAY <@${user}> ` // A
+		scream += "A"
 		a--
 	}
 
