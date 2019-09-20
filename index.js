@@ -597,7 +597,7 @@ function command(message) { try {
  *   donotreply list
  */
 function inDoNotReply(userId) {
-	return (Object.values(config.donotreply).includes(userId)) && (userId != client.user.id)
+	return (Object.values(config.donotreply).includes(userId)) || (userId == client.user.id)
 }
 
 
