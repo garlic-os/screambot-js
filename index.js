@@ -42,17 +42,21 @@
  *    - Merge ranks.json with config.json
  *        - Will require a good bit of code reworking
  *    - Make the code for responding to pings not garbage
- *    - Let me schedule different messages for certain dates
- *    - Implement local mode
+ *    - Schedule different messages for certain dates
  *    - Change scream on the fly, per server
  */
+
+// Because "0" and "false" don't evaluate to false by themselves in JavaScript
+const localMode = process.env.LOCAL_MODE != "0" && process.env.LOCAL_MODE != "false"
 
 // Helpful for debugging
 process.on("unhandledRejection", up => { throw up })
 
 // Requirements
 const Discord = require("discord.js")
-const AWS = require("aws-sdk");
+const AWS = require("aws-sdk") // for accessing remote files in an S3 bucket
+const fs = require("fs") // for accessing local files
+
 
 // Makes the logs look nice
 require("console-stamp")(console, {
@@ -61,13 +65,12 @@ require("console-stamp")(console, {
 	pattern: " "
 })
 
-// Set up AWS to fetch files from an S3 bucket
-AWS.config.update({
+
+AWS.config.update({ // Set up AWS to fetch files from an S3 bucket
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 })
-const s3 = new AWS.S3()
-
+s3 = new AWS.S3()
 
 
 // --- Initialization ---------------------
@@ -76,9 +79,9 @@ const client = new Discord.Client()
 
 // Shameful global variables
 global.config = {}
-global.ranks  = {}
+global.ranks = {}
 
-loadRanks(true)
+loadRanks()
 
 /**
  * On Ready
@@ -87,10 +90,10 @@ loadRanks(true)
  */
 client.on("ready", () => {
 	console.log(`Logged in as ${client.user.tag}.\n`)
-	if (process.env.LOCAL_MODE) // Fine when running locally, but SUPER annoying when Heroku refreshes your program every day
+	if (localMode) // Fine when running locally, but SUPER annoying when Heroku refreshes your program every day
 		dmTheDevs("Logged in.")
 
-	loadConfig(true)
+	loadConfig()
 
 	// Set the title of the "game" Screambot is "playing"
 	client.user.setActivity(config.activity)
@@ -124,11 +127,8 @@ client.on("message", message => {
 			}
 		}
 
-		// Someone screams (who isn't Screambot itself)
-		else if (
-			(isScream(message.content)) &&
-		    (message.author != client.user)
-		) {
+		// Someone screams
+		else if (isScream(message.content)) {
 			console.log(`${locationString(message)} ${message.author.username} has screamed.`)
 			screamIn(message.channel)
 				.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
@@ -190,43 +190,28 @@ console.log("Logging in...")
 client.login(process.env.DISCORD_BOT_TOKEN)
 
 
-/**
- * Exit Handlers
- * Triggers when:
- *   - process.exit() is called
- *   - task is terminated/interrupted
- *   - an exception is thrown outside of a try/catch
- */
-process.on("exit", exitCleanly)
-process.on("SIGTERM", exitCleanly)
-process.on("SIGINT", exitCleanly)
-process.on("uncaughtException", crashWith)
-
-
-
 // --- Functions -------------------------
 
 /**
- * Exit Cleanly
+ * Log Out
  * Logs out of Discord
- * Logs the process of doing so
  */
-function exitCleanly(exitCode) { try {
+function logOut() {
 	console.warn("---------------------------------")
-	console.warn(`About to exit with exit code ${exitCode}`)
+	console.info(`Logging out.`)
 
-	if (process.env.LOCAL_MODE) dmTheDevs("Logging out.")
+	if (localMode) dmTheDevs("Logging out.")
 
 	client.user.setActivity("SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-		.catch(logError)
 
 	console.warn("Logging out...")
+
 	client.destroy()
 		.then(console.warn("Logged out."))
-		.catch(logError)
 
 	console.warn("---------------------------------\n")
-} catch (e) {console.error("Something went wrong while trying to exit:", e)}}
+}
+
 
 /**
 * Update nicknames
@@ -249,7 +234,7 @@ function updateNicknames() {
 	}
 	
 	const nicknames = Object.values(config.nicknames)
-	client.guilds.tap(server => { // Don't ask me what tap means
+	client.guilds.tap(server => { // Don't ask me what tap means or does
 		let nickname = _getNickname(nicknames, server.id)
 		if (nickname) {
 			server.me.setNickname(nickname.name)
@@ -262,23 +247,44 @@ function updateNicknames() {
 
 
 /**
- * Download
- * Syntactic shortcut to get a
- *   file from the S3 bucket with the
- *   information provided through env
+ * Access
+ * Reads a file either from S3_BUCKET_NAME
+ *   or locally, depending on LOCAL_MODE
+ *   
+ * Resolves to a Buffer, intended
+ *   to be JSON parsed
+ * 
+ * If LOCAL_MODE is on, it will also
+ *   watch the file for changes and
+ *   call the callback.
  */
-function download(fileName) { return new Promise( (resolve, reject) => {
-	const params = {
-		Bucket: process.env.S3_BUCKET_NAME, 
-		Key: fileName
+function access(fileName, cb) { return new Promise( (resolve, reject) => {
+	if (localMode) { // read local file
+		fs.watchFile(fileName, cb)
+		const fileBuffer = fs.readFileSync(`./${fileName}`)
+		if (fileBuffer === undefined || fileBuffer === null)
+			reject(fileBuffer)
+		else
+			resolve(fileBuffer)
 	}
+	
+	else { // read remote file from S3 bucket
+		const params = {
+			Bucket: process.env.S3_BUCKET_NAME, 
+			Key: fileName
+		}
 
-	s3.getObject(params, (err, data) => {
-		if (data.Body === undefined || data.Body === null)
-			reject(data.Body)
-		if (err) reject(err)
-		else resolve(data.Body)
-	})
+		s3.getObject(params, (err, data) => {
+			if (data.Body === undefined || data.Body === null) {
+				reject(data.Body)
+			} else {
+				if (err)
+					reject(err)
+				else
+					resolve(data.Body)
+			}	
+		})
+	}
 })}
 
 
@@ -325,15 +331,16 @@ function printRankingMembers(ranks) {
 
 /**
  * Load Config
- * Downloads the config JSON file from CONFIG_PATH
+ * Accesses the config JSON file from CONFIG_PATH
  * Converts it to an Object
  * Stores it as config
  * Applies server-specific nicknames
  */
-function loadConfig(firstTime) {
+function loadConfig() {
+	const firstTime = isEmpty(config)
 	console.log(`${(firstTime) ? "Loading" : "Updating"} config...`)
 
-	download(process.env.CONFIG_FILENAME)
+	access(process.env.CONFIG_FILENAME, loadConfig)
 		.then( body => {
 			try { config = JSON.parse(body) } // Set the config variable
 			catch (err) {
@@ -365,14 +372,15 @@ function loadConfig(firstTime) {
 
 /**
  * Load Ranks
- * Downloads the ranks JSON file specifed in RANKS_PATH
+ * Accesses the ranks JSON file specifed in RANKS_PATH
  * Converts it to an Object
  * Sets it as Ranks
  */
-function loadRanks(firstTime) {
+function loadRanks() {
+	const firstTime = isEmpty(ranks)
 	console.log(`${(firstTime) ? "Loading" : "Updating"} ranks...`)
 
-	download(process.env.RANKS_FILENAME)
+	access(process.env.RANKS_FILENAME, loadRanks)
 		.then( body => {
 			try { ranks = JSON.parse(body) } // Set the ranks variable
 			catch (err) {
@@ -555,10 +563,10 @@ function command(message) { try {
 			case "update":
 				switch(cmd.shift()) {
 					case "config":
-						loadConfig(false)
+						loadConfig()
 						break
 					case "ranks":
-						loadranks(false)
+						loadranks()
 						break
 					case "nicknames":
 						updateNicknames()
@@ -589,7 +597,7 @@ function command(message) { try {
  *   donotreply list
  */
 function inDoNotReply(userId) {
-	return (Object.values(config.donotreply).includes(userId))
+	return (Object.values(config.donotreply).includes(userId)) && (userId != client.user.id)
 }
 
 
@@ -695,3 +703,12 @@ function locationString(message) {
 		? `[Direct message]`
 		: `[${message.guild.name} - #${message.channel.name}]`
 }
+
+
+/**
+ * Is Empty
+ * Determines if an object is empty
+ */
+function isEmpty(obj) {
+    return Object.entries(obj).length === 0 && obj.constructor === Object
+};
