@@ -1,34 +1,21 @@
 {
 	"activity": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 	"channels": {
-		"screambot test server - #general": {
-			"id": "576212353390215180"
+		"example server - #general": {
+			"id": "123456789012345678"
 		},
-		"trash can - #general": {
-			"id": "487458564810473475"
-		},
-		"/r/Ooer - #general": {
-			"id": "280298381807714304"
-		},
-		"/r/Ooer - #botspam": {
-			"id": "325969983441993729"
-		},
-		"lh": {
-			"id": "597957895157579791"
-		},
-		"JuiceBux's request": {
-			"id": "521666776317296643"
+		"example server - #spam (you don't actually have to follow a naming convention. these strings are just to help you keep track.)": {
+			"id": "987654321098765432"
 		}
 	},
 	"nicknames": {
-		"/r/Ooer": { 
-			"id": "280298381807714304",
-			"name": "OoerBot Ⓐ"
+		"server name or something here": { 
+			"id": "777777777777777777",
+			"name": "The robot that screams"
 		}
 	},
 	"randomreplychance": 0.5,
 	"donotreply": {
-		"Screambot": "574092583014236160",
-		"Screambot BETA": "576225144125652999"
+		"Screambot": "STRONGLY RECOMMENDED TO PUT SCREAMBOT'S ID HERE."
 	}
 }
