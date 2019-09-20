@@ -14,7 +14,7 @@
  *    - String AWS_SECRET_ACCESS_KEY: Same as above?? idk how this works tbh.
  *    - String CONFIG_FILENAME: The name of the file on the designated S3 bucket.
  *    - String RANKS_FILENAME: CONFIG_FILENAME, but for the ranks file.
- *    - (NOT YET IMPLEMENTED) boolean LOCAL_MODE: When true, CONFIG_FILENAME and RANKS_FILENAME point files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.
+ *    - boolean LOCAL_MODE: When true, CONFIG_FILENAME and RANKS_FILENAME point files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.
  * 
  * 
  *  I couldn't have done this without:
