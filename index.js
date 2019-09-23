@@ -8,13 +8,14 @@
  *    - Someone says something (sometimes)
  * 
  *  Environment variables:
- *    - String DISCORD_BOT_TOKEN: The token you get when you make a Discord bot. discord.js uses this to log in.
- *    - String S3_BUCKET_NAME: The name of the S3 bucket Screambot will look for files in.
- *    - String AWS_ACCESS_KEY_ID: The credentials for a user that can access the specified S3 bucket.
- *    - String AWS_SECRET_ACCESS_KEY: Same as above?? idk how this works tbh.
- *    - String CONFIG_FILENAME: The name of the file on the designated S3 bucket.
- *    - String RANKS_FILENAME: CONFIG_FILENAME, but for the ranks file.
- *    - boolean LOCAL_MODE: When true, CONFIG_FILENAME and RANKS_FILENAME point files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.
+ *    - DISCORD_BOT_TOKEN: The token you get when you make a Discord bot. discord.js uses this to log in.
+ *    - S3_BUCKET_NAME: The name of the S3 bucket Screambot will look for files in.
+ *    - AWS_ACCESS_KEY_ID: The credentials for a user that can access the specified S3 bucket.
+ *    - AWS_SECRET_ACCESS_KEY: Same as above?? idk how this works tbh.
+ *    - CONFIG_FILENAME: The name of the file on the designated S3 bucket.
+ *    - RANKS_FILENAME: CONFIG_FILENAME, but for the ranks file.
+ *    - LOCAL_MODE: When 1, CONFIG_FILENAME and RANKS_FILENAME point files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.
+ *                  When 0, CONFIG_FILENAME and RANKS_FILENAME point files on the given S3 bucket. Necessary for when running from a cloud server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY must be filled out.
  * 
  * 
  *  I couldn't have done this without:
@@ -44,7 +45,10 @@
  *    - Make the code for responding to pings not garbage
  *    - Schedule different messages for certain dates
  *    - Change scream on the fly, per server
+ *    - Fix the "update" command
  */
+
+console.log("Screambot started.")
 
 // Because "0" and "false" don't evaluate to false by themselves in JavaScript
 const localMode = process.env.LOCAL_MODE != "0" && process.env.LOCAL_MODE != "false"
@@ -57,7 +61,6 @@ const Discord = require("discord.js")
 const AWS = require("aws-sdk") // for accessing remote files in an S3 bucket
 const fs = require("fs") // for accessing local files
 
-
 // Makes the logs look nice
 require("console-stamp")(console, {
 	datePrefix: "",
@@ -65,16 +68,13 @@ require("console-stamp")(console, {
 	pattern: " "
 })
 
-
-AWS.config.update({ // Set up AWS to fetch files from an S3 bucket
+// Set up AWS to fetch files from an S3 bucket
+AWS.config.update({
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 })
-s3 = new AWS.S3()
+const s3 = new AWS.S3()
 
-
-// --- Initialization ---------------------
-console.log("Screambot started.")
 const client = new Discord.Client()
 
 // Shameful global variables
@@ -90,13 +90,13 @@ loadRanks()
  */
 client.on("ready", () => {
 	console.log(`Logged in as ${client.user.tag}.\n`)
-	if (localMode) // Fine when running locally, but SUPER annoying when Heroku refreshes your program every day
-		dmTheDevs("Logged in.")
+	if (localMode) dmTheDevs("Logged in.") // Gets SUPER annoying when Heroku refreshes your program every day, so only while on local mode
 
 	loadConfig()
 
 	// Set the title of the "game" Screambot is "playing"
 	client.user.setActivity(config.activity)
+		.then(console.log(`Successfully set Screambot's activity: ${config.activity}`))
 		.catch(logError)
 })
 
@@ -199,12 +199,7 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 function logOut() {
 	console.warn("---------------------------------")
 	console.info(`Logging out.`)
-
 	if (localMode) dmTheDevs("Logging out.")
-
-	client.user.setActivity("SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-
-	console.warn("Logging out...")
 
 	client.destroy()
 		.then(console.warn("Logged out."))
@@ -232,6 +227,8 @@ function updateNicknames() {
 		}
 		return false
 	}
+
+	let erred = false
 	
 	const nicknames = Object.values(config.nicknames)
 	client.guilds.tap(server => { // Don't ask me what tap means or does
@@ -239,9 +236,11 @@ function updateNicknames() {
 		if (nickname) {
 			server.me.setNickname(nickname.name)
 				.then(console.log(`Custom nickname in ${client.guilds.get(nickname.id)}: ${nickname.name}.\n`))
-				.catch(logError)
+				.catch( (err) => {
+					erred = true
+					logError(err)
+				})
 		}
-
 	})
 }
 
@@ -336,7 +335,7 @@ function printRankingMembers(ranks) {
  * Stores it as config
  * Applies server-specific nicknames
  */
-function loadConfig() {
+function loadConfig() { new Promise ( (resolve, reject) => {
 	const firstTime = isEmpty(config)
 	console.log(`${(firstTime) ? "Loading" : "Updating"} config...`)
 
@@ -359,6 +358,8 @@ function loadConfig() {
 
 			console.log(`Config successfully ${(firstTime) ? "loaded" : "updated"}.`)
 			if (!firstTime) dmTheDevs("Config successfully updated.")
+
+			resolve()
 		})
 			
 		
@@ -366,8 +367,10 @@ function loadConfig() {
 			(firstTime)
 				? crashWith(Error("Could not access the config file! Screambot cannot continue.", err))
 				: logError(Error("Could not access the config file! Keeping the old configuration.", err))
+
+			reject()
 		})
-}
+})}
 
 
 /**
@@ -376,7 +379,7 @@ function loadConfig() {
  * Converts it to an Object
  * Sets it as Ranks
  */
-function loadRanks() {
+function loadRanks() { new Promise ( (resolve, reject) => {
 	const firstTime = isEmpty(ranks)
 	console.log(`${(firstTime) ? "Loading" : "Updating"} ranks...`)
 
@@ -397,6 +400,8 @@ function loadRanks() {
 
 			console.log(`Ranks successfully ${(firstTime) ? "loaded" : "updated"}.`)
 			if (!firstTime) dmTheDevs("Ranks successfully updated.")
+
+			resolve()
 		})
 
 
@@ -404,8 +409,10 @@ function loadRanks() {
 			(firstTime)
 				? crashWith("Could not access the ranks file! Screambot cannot continue.", err)
 				: logError("Could not access the ranks file! Keeping the old ranks.", err)
+
+			reject()
 		})
-}
+})}
 
 
 /**
@@ -505,10 +512,12 @@ function command(message) { try {
 	if      (isAdmin(authorId)) rank = 1 // Admin = 1
 	else if (isDev  (authorId)) rank = 2 // Dev   = 2
 
-	let cmd = message.content
+	let cmd = message.content.toLowerCase()
 	cmd = cmd.substring(cmd.indexOf(" ") + 1) // Remove the mention (i.e. <@screambotsid>)
 	console.info(`Command: ${cmd}`)
-	cmd = cmd.toLowerCase().split(" ")
+	cmd = cmd.split(" ")
+
+	const keyword = cmd.shift()
 
 	// -- COMMAND LIST --
 
@@ -518,7 +527,7 @@ function command(message) { try {
 			return true
 	}*/
 	if (rank >= 1) { // Admin (and up) commands
-		switch (cmd.shift()) {
+		switch (keyword) {
 			case "shutdown":
 				sayIn(message.channel, "AAAAAAAAAAA SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 					.then(message => console.log(`${locationString(message)} Sent the shutdown message, "${message.content}".`))
@@ -528,7 +537,7 @@ function command(message) { try {
 		}
 	}
 	if (rank >= 2) { // Dev (and up) commands
-		switch (cmd.shift()) {
+		switch (keyword) {
 
 			case "say":
 				sayIn(message.channel, cmd.join(" "))
@@ -537,9 +546,15 @@ function command(message) { try {
 				return true
 
 			case "sayin":
-				sayIn(client.channels.get(cmd.shift()), cmd.join(" "))
-					.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
-					.catch(logError)
+				const sayin_channelId = cmd.shift()
+				if (client.channels.has(sayin_channelId))
+					sayIn(client.channels.get(sayin_channelId), cmd.join(" "))
+						.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
+						.catch(logError)
+				else
+					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SPEAK THERE AAAAAAAAAAAAAA")
+						.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
+						.catch(logError)
 				return true
 
 			case "reply":
@@ -549,46 +564,86 @@ function command(message) { try {
 				return true
 
 			case "screamin":
-				const channel = client.channels.get(cmd.join(" "))
-				if (channelIdIsAllowed(channel.id))
-					screamIn(client.channels.get(cmd.join(" ")))
+				if (client.channels.has(cmd[0]))
+					screamIn(client.channels.get(cmd[0]))
 						.then(message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`))
 						.catch(logError)
 				else
-					sayIn(message.channel, `AAAAAA I'M NOT ALLOWED THERE AAAAAAAAAAAAAAAAAAAAAAAA`)
+					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SCREAM THERE AAAAAAAAAAAAAA")
 						.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
 						.catch(logError)
 				return true
 
-			case "update":
-				switch(cmd.shift()) {
+			/*case "update":
+				const updateWhat = cmd.shift()
+				console.log(updateWhat)
+				switch(updateWhat) {
 					case "config":
-						loadConfig()
-						break
+						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING CONFIG AAAAAAAAAAAAAA")
+							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
+							.catch(logError)
+						loadConfig(false)
+							.then( () => {
+								sayIn(message.channel, "AAAAAAAAAAAAAA CONFIG UPDATED AAAAAAAAAAAAAA")
+										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
+										.catch(logError)
+							})
+							.catch( () => {
+								sayIn(message.channel, "AAAAAAAAAAAAAA COULDN'T UPDATE THE CONFIG CHECK THE LOGS AAAAAAAAAAAAAA")
+									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
+									.catch(logError)
+							})
+						return true
 					case "ranks":
-						loadranks()
-						break
+						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING RANKS AAAAAAAAAAAAAA")
+							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
+							.catch(logError)
+						loadRanks(false)
+							.then( () => {
+								sayIn(message.channel, "AAAAAAAAAAAAAA RANKS UPDATED AAAAAAAAAAAAAA")
+										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
+										.catch(logError)
+							})
+							.catch( () => {
+								sayIn(message.channel, "AAAAAAAAAAAAAA COULDN'T UPDATE THE RANKS CHECK THE LOGS AAAAAAAAAAAAAA")
+									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
+									.catch(logError)
+							})
+						return true
 					case "nicknames":
+						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING NICKNAMES AAAAAAAAAAAAAA")
+							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
+							.catch(logError)
 						updateNicknames()
-						break
+							// Promise-ifying this function oddly makes it crash, so, uhhh, nevermind sending a feedback message for this command
+							/*.then( () => {
+								sayIn(message.channel, "AAAAAAAAAAAAAA NICKNAMES UPDATED AAAAAAAAAAAAAA.")
+										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
+										.catch(logError)
+							})
+							.catch( () => {
+								sayIn(message.channel, "AAAAAAAAAAAAAA NICKNAMED UPDATED WITH ERRORS CHECK THE LOGS AAAAAAAAAAAAAA")
+									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
+									.catch(logError)
+							})
+						return true
 					default:
-						sayIn(message.channel, `AAAA I CAN ONLY UPDATE CONFIG, RANKS, AND NICKNAMES AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
+						sayIn(message.channel, `AAAAAAAAAAAAAA I CAN ONLY UPDATE CONFIG, RANKS, AND NICKNAMES AAAAAAAAAAAAAA`)
 							.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
 							.catch(logError)
-						break
+						return true
 				}
-				return true
+				return true*/
 
 			//case "eval": // I want this to eval JS but I couldn't figure out how to get it to work right. Maybe it's for the better.
 			//	message.reply(eval(args))
 			//	return true
 
 			//case "join": // For VC if I ever figure that out
-				
 		}
 	}
 	return false
-} catch (err) { logError(Error("ERROR! Invalid command.", err)) } }
+} catch (err) { logError(Error(`A command caused an error: ${message}`, err)) } }
 
 
 /**
