@@ -9,7 +9,7 @@ It's still a work in progress, but it _does_ work, so if for some reason you wan
 3. Configure `config.json` and `ranks.json` to match what server(s) you'll put Screambot on
 4. Configure the environment variables listed at the top of `index.js` (too lazy to put them here)
  - The S3 and AWS-related ones aren't necessary if you're running locally
-5. Invite Screambot to your servers at https://discordapp.com/developers/applications/574092583014236160/oauth; needs permission code `67177472` and scope `bot`
+5. Invite Screambot to your servers at https://discordapp.com/developers/applications/574092583014236160/oauth; needs permission code <span title="TODO: explain what this code means">`67177472`</span> and scope `bot`
 6. Run it
 
 If you take a look at it and find issues, please don't hesitate to make an issue or a pull request.
