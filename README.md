@@ -31,7 +31,7 @@ Screambot still very much a work in progress, but it _does_ work. I am working t
 | LOCAL_MODE | <ul><li>When 1, CONFIG_FILENAME and RANKS_FILENAME point to files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.</li><li>When 0, CONFIG_FILENAME and RANKS_FILENAME point to files on the given S3 bucket. Necessary for when running from a cloud server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY must be filled out.</li></ul> |
 
 ## TODO
-Things I need to do, in no particular order:
+In no particular order:
 - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
 - Put the functions in a sensible order
 - Ranks: go by server role IDs, when possible, instead of user IDs
@@ -63,5 +63,6 @@ I couldn't have done this without:
 - Viewers like you
   - Thank you
 
+---
 
 If you take a look at it and you find something I should change, please don't hesitate to make an issue or a pull request.
