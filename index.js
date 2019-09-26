@@ -1,53 +1,3 @@
-
-/**
- *  Screambot
- *  A Discord bot that screams
- *  Screams when:
- *    - Pinged
- *    - Someone else screams
- *    - Someone says something (sometimes)
- * 
- *  Environment variables:
- *    - DISCORD_BOT_TOKEN: The token you get when you make a Discord bot. discord.js uses this to log in.
- *    - S3_BUCKET_NAME: The name of the S3 bucket Screambot will look for files in.
- *    - AWS_ACCESS_KEY_ID: The credentials for a user that can access the specified S3 bucket.
- *    - AWS_SECRET_ACCESS_KEY: Same as above?? idk how this works tbh.
- *    - CONFIG_FILENAME: The name of the file on the designated S3 bucket.
- *    - RANKS_FILENAME: CONFIG_FILENAME, but for the ranks file.
- *    - LOCAL_MODE: When 1, CONFIG_FILENAME and RANKS_FILENAME point files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.
- *                  When 0, CONFIG_FILENAME and RANKS_FILENAME point files on the given S3 bucket. Necessary for when running from a cloud server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY must be filled out.
- * 
- * 
- *  I couldn't have done this without:
- *    - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
- *    - discord.js and its documentation: https://discord.js.org/#/
- *    - Inspiration and encouragement from friends and family
- *    - node.js lol
- *    - Viewers like you
- *        - Thank you
- * 
- *  TODO:
- *    - Scream in VC (https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md)
- *    - Put the functions in a sensible order
- *    - Ranks: go by server role IDs, when possible, instead of user IDs
- *    - Make things more asynchronous
- *    - Add scream variations (maybe?)
- *        - Ending h's
- *        - Ending rgh
- *        - Ending punctuation
- *        - Beginning lowercase a's
- *        - Beginning o's
- *        - o's instead of a's
- *    - Make a "help" command
- *        - Will be necessary if I want this to be something others can use
- *    - Merge ranks.json with config.json
- *        - Will require a good bit of code reworking
- *    - Make the code for responding to pings not garbage
- *    - Schedule different messages for certain dates
- *    - Change scream on the fly, per server
- *    - Fix the "update" command
- */
-
 console.log("Screambot started.")
 
 // Because "0" and "false" don't evaluate to false by themselves in JavaScript
@@ -78,8 +28,8 @@ const s3 = new AWS.S3()
 const client = new Discord.Client()
 
 // Shameful global variables
-global.config = {}
-global.ranks = {}
+global.config = {} // new Map()
+global.ranks  = {} // new Map()
 
 loadRanks()
 
@@ -196,7 +146,7 @@ client.login(process.env.DISCORD_BOT_TOKEN)
  * Log Out
  * Logs out of Discord
  */
-function logOut() {
+/*function logOut() {
 	console.warn("---------------------------------")
 	console.info(`Logging out.`)
 	if (localMode) dmTheDevs("Logging out.")
@@ -205,7 +155,7 @@ function logOut() {
 		.then(console.warn("Logged out."))
 
 	console.warn("---------------------------------\n")
-}
+}*/
 
 
 /**
@@ -213,9 +163,9 @@ function logOut() {
 * Sets Screambot's server-specific nicknames
 * Requires config to exist first
 */
-function updateNicknames() {
+function updateNicknames() { //new Promise ( (resolve, reject) => {
 	/**
-	 * (Private function)
+	 * @private
 	 * Get Nickname
 	 * Returns the nickname corresponding
 	 *   to the given server
@@ -228,7 +178,7 @@ function updateNicknames() {
 		return false
 	}
 
-	let erred = false
+	//let erred = false // scope problems
 	
 	const nicknames = Object.values(config.nicknames)
 	client.guilds.tap(server => { // Don't ask me what tap means or does
@@ -237,12 +187,17 @@ function updateNicknames() {
 			server.me.setNickname(nickname.name)
 				.then(console.log(`Custom nickname in ${client.guilds.get(nickname.id)}: ${nickname.name}.\n`))
 				.catch( (err) => {
-					erred = true
+					//erred = true // how can i put this at the top of the function's scope?
 					logError(err)
 				})
 		}
 	})
-}
+
+	/*(erred)
+		? reject()
+		: resolve()*/
+
+}//)}
 
 
 /**
@@ -330,10 +285,12 @@ function printRankingMembers(ranks) {
 
 /**
  * Load Config
- * Accesses the config JSON file from CONFIG_PATH
- * Converts it to an Object
- * Stores it as config
- * Applies server-specific nicknames
+ * Accesses the config JSON file from CONFIG_PATH,
+ * converts it to an Object,
+ * stores it as config, and
+ * applies server-specific nicknames
+ * 
+ * @return {Promise<void>} A promise pretty much just for knowing whether it worked or not
  */
 function loadConfig() { new Promise ( (resolve, reject) => {
 	const firstTime = isEmpty(config)
@@ -378,6 +335,8 @@ function loadConfig() { new Promise ( (resolve, reject) => {
  * Accesses the ranks JSON file specifed in RANKS_PATH
  * Converts it to an Object
  * Sets it as Ranks
+ * 
+ * @return {Promise<void>} A promise pretty much just for knowing whether it worked or not
  */
 function loadRanks() { new Promise ( (resolve, reject) => {
 	const firstTime = isEmpty(ranks)
@@ -418,6 +377,8 @@ function loadRanks() { new Promise ( (resolve, reject) => {
 /**
  * Generate Scream
  * Generates a 1-100 character string of capital A's
+ * 
+ * @return {string} scream
  */
 function generateScream() {
 	const min = 1
@@ -435,6 +396,13 @@ function generateScream() {
 }
 
 
+/**
+ * Random Reply Chance
+ * 
+ * Returns a boolean based on config.randomreplychance
+ * 
+ * @return {boolean} Whether to reply or not
+ */
 function randomReplyChance() {
 	return (Math.random() * 100 <= config.randomreplychance)
 }
@@ -555,12 +523,6 @@ function command(message) { try {
 					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SPEAK THERE AAAAAAAAAAAAAA")
 						.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
 						.catch(logError)
-				return true
-
-			case "reply":
-				message.reply(cmd.join(" "))
-					.then(message => console.log(`${locationString(message)} Replied with the message, "${message.content}".`))
-					.catch(logError)
 				return true
 
 			case "screamin":
