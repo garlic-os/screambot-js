@@ -1,57 +1,4 @@
 
-/**
- *  Screambot
- *  A Discord bot that screams
- *  Screams when:
- *    - Pinged
- *    - Someone else screams
- *    - Someone says something (sometimes)
- * 
- *  Environment variables:
- *    - DISCORD_BOT_TOKEN:     The token you get when you make a Discord bot. discord.js uses this to log in.
- *    - S3_BUCKET_NAME:        The name of the S3 bucket Screambot will look for files in.
- *    - AWS_ACCESS_KEY_ID:     The credentials for a user that can access the specified S3 bucket.
- *    - AWS_SECRET_ACCESS_KEY: Same as above?? idk how this works tbh.
- *    - CONFIG_FILENAME:       The name of the file on the designated S3 bucket.
- *    - RANKS_FILENAME:        CONFIG_FILENAME, but for the ranks file.
- *    - LOCAL_MODE:            When 1, CONFIG_FILENAME and RANKS_FILENAME point to files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.
- *                             When 0, CONFIG_FILENAME and RANKS_FILENAME point to files on the given S3 bucket. Necessary for when running from a cloud server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY must be filled out.
- * 
- * 
- *  I couldn't have done this without:
- *    - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
- *    - discord.js and its documentation: https://discord.js.org/#/
- *    - Inspiration and encouragement from friends and family
- *    - node.js lol
- *    - Viewers like you
- *        - Thank you
- * 
- *  TODO:
- *    - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
- *    - Put the functions in a sensible order
- *    - Ranks: go by server role IDs, when possible, instead of user IDs
- *    - Make things more asynchronous
- *    - Add scream variations (maybe?)
- *        - Ending h's
- *        - Ending rgh
- *        - Ending punctuation
- *        - Beginning lowercase a's
- *        - Beginning o's
- *        - o's instead of a's
- *    - Make a "help" command
- *    - Merge ranks.json with config.json?
- *    - Make the code for responding to pings not garbage
- *    - Schedule different messages for certain dates: https://repl.it/@Garlic_OS/temporarily
- *    - Change scream on the fly, per server
- *    - Fix the "update" command
- *    - Switch from configuration by editing config files
- *        to configuration by chat commands,
- *        so it can have entirely different settings on
- *        different servers
- *    - Rework config and ranks variables to use Maps instead of plain Objects
- */
-
-
 require("console-stamp")(console, {
 	datePrefix: "",
 	dateSuffix: "",
@@ -196,27 +143,11 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 // --- Functions -------------------------
 
 /**
- * Log Out
- * Logs out of Discord
- */
-/*function logOut() {
-	console.warn("---------------------------------")
-	console.info(`Logging out.`)
-	if (localMode) dmTheDevs("Logging out.")
-
-	client.destroy()
-		.then(console.warn("Logged out."))
-
-	console.warn("---------------------------------\n")
-}*/
-
-
-/**
 * Update nicknames
 * Sets Screambot's server-specific nicknames
 * Requires config to exist first
 */
-function updateNicknames() { //return new Promise ( (resolve, reject) => {
+function updateNicknames() {
 	/**
 	 * @private
 	 * Get Nickname
@@ -230,8 +161,6 @@ function updateNicknames() { //return new Promise ( (resolve, reject) => {
 		}
 		return false
 	}
-
-	//let erred = false // scope problems
 	
 	const nicknames = Object.values(config.nicknames)
 	client.guilds.tap(server => { // Don't ask me what tap means or does
@@ -240,17 +169,11 @@ function updateNicknames() { //return new Promise ( (resolve, reject) => {
 			server.me.setNickname(nickname.name)
 				.then(console.log(`Custom nickname in ${client.guilds.get(nickname.id)}: ${nickname.name}.\n`))
 				.catch( (err) => {
-					//erred = true // how can i put this at the top of the function's scope?
 					logError(err)
 				})
 		}
 	})
-
-	/*(erred)
-		? reject()
-		: resolve()*/
-
-}//)}
+}
 
 
 /**
@@ -588,73 +511,6 @@ function command(message) { try {
 						.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
 						.catch(logError)
 				return true
-
-			/*case "update":
-				const updateWhat = cmd.shift()
-				console.log(updateWhat)
-				switch(updateWhat) {
-					case "config":
-						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING CONFIG AAAAAAAAAAAAAA")
-							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
-							.catch(logError)
-						loadConfig(false)
-							.then( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA CONFIG UPDATED AAAAAAAAAAAAAA")
-										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
-										.catch(logError)
-							})
-							.catch( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA COULDN'T UPDATE THE CONFIG CHECK THE LOGS AAAAAAAAAAAAAA")
-									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
-									.catch(logError)
-							})
-						return true
-					case "ranks":
-						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING RANKS AAAAAAAAAAAAAA")
-							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
-							.catch(logError)
-						loadRanks(false)
-							.then( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA RANKS UPDATED AAAAAAAAAAAAAA")
-										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
-										.catch(logError)
-							})
-							.catch( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA COULDN'T UPDATE THE RANKS CHECK THE LOGS AAAAAAAAAAAAAA")
-									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
-									.catch(logError)
-							})
-						return true
-					case "nicknames":
-						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING NICKNAMES AAAAAAAAAAAAAA")
-							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
-							.catch(logError)
-						updateNicknames()
-							// Promise-ifying this function oddly makes it crash, so, uhhh, nevermind sending a feedback message for this command
-							/*.then( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA NICKNAMES UPDATED AAAAAAAAAAAAAA.")
-										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
-										.catch(logError)
-							})
-							.catch( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA NICKNAMED UPDATED WITH ERRORS CHECK THE LOGS AAAAAAAAAAAAAA")
-									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
-									.catch(logError)
-							})
-						return true
-					default:
-						sayIn(message.channel, `AAAAAAAAAAAAAA I CAN ONLY UPDATE CONFIG, RANKS, AND NICKNAMES AAAAAAAAAAAAAA`)
-							.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
-							.catch(logError)
-						return true
-				}
-				return true*/
-
-			//case "eval": // I want this to eval JS but I couldn't figure out how to get it to work right. Maybe it's for the better.
-			//	message.reply(eval(args))
-			//	return true
-
-			//case "join": // For VC if I ever figure that out
 		}
 	}
 	return false
