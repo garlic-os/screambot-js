@@ -1,3 +1,63 @@
+
+/**
+ *  Screambot
+ *  A Discord bot that screams
+ *  Screams when:
+ *    - Pinged
+ *    - Someone else screams
+ *    - Someone says something (sometimes)
+ * 
+ *  Environment variables:
+ *    - DISCORD_BOT_TOKEN:     The token you get when you make a Discord bot. discord.js uses this to log in.
+ *    - S3_BUCKET_NAME:        The name of the S3 bucket Screambot will look for files in.
+ *    - AWS_ACCESS_KEY_ID:     The credentials for a user that can access the specified S3 bucket.
+ *    - AWS_SECRET_ACCESS_KEY: Same as above?? idk how this works tbh.
+ *    - CONFIG_FILENAME:       The name of the file on the designated S3 bucket.
+ *    - RANKS_FILENAME:        CONFIG_FILENAME, but for the ranks file.
+ *    - LOCAL_MODE:            When 1, CONFIG_FILENAME and RANKS_FILENAME point to files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.
+ *                             When 0, CONFIG_FILENAME and RANKS_FILENAME point to files on the given S3 bucket. Necessary for when running from a cloud server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY must be filled out.
+ * 
+ * 
+ *  I couldn't have done this without:
+ *    - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
+ *    - discord.js and its documentation: https://discord.js.org/#/
+ *    - Inspiration and encouragement from friends and family
+ *    - node.js lol
+ *    - Viewers like you
+ *        - Thank you
+ * 
+ *  TODO:
+ *    - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
+ *    - Put the functions in a sensible order
+ *    - Ranks: go by server role IDs, when possible, instead of user IDs
+ *    - Make things more asynchronous
+ *    - Add scream variations (maybe?)
+ *        - Ending h's
+ *        - Ending rgh
+ *        - Ending punctuation
+ *        - Beginning lowercase a's
+ *        - Beginning o's
+ *        - o's instead of a's
+ *    - Make a "help" command
+ *    - Merge ranks.json with config.json?
+ *    - Make the code for responding to pings not garbage
+ *    - Schedule different messages for certain dates: https://repl.it/@Garlic_OS/temporarily
+ *    - Change scream on the fly, per server
+ *    - Fix the "update" command
+ *    - Switch from configuration by editing config files
+ *        to configuration by chat commands,
+ *        so it can have entirely different settings on
+ *        different servers
+ *    - Rework config and ranks variables to use Maps instead of plain Objects
+ */
+
+
+require("console-stamp")(console, {
+	datePrefix: "",
+	dateSuffix: "",
+	pattern: " "
+})
+
 console.log("Screambot started.")
 
 // Because "0" and "false" don't evaluate to false by themselves in JavaScript
@@ -10,13 +70,6 @@ process.on("unhandledRejection", up => { throw up })
 const Discord = require("discord.js")
 const AWS = require("aws-sdk") // for accessing remote files in an S3 bucket
 const fs = require("fs") // for accessing local files
-
-// Makes the logs look nice
-require("console-stamp")(console, {
-	datePrefix: "",
-	dateSuffix: "",
-	pattern: " "
-})
 
 // Set up AWS to fetch files from an S3 bucket
 AWS.config.update({
@@ -43,11 +96,11 @@ client.on("ready", () => {
 	if (localMode) dmTheDevs("Logged in.") // Gets SUPER annoying when Heroku refreshes your program every day, so only while on local mode
 
 	loadConfig()
-
-	// Set the title of the "game" Screambot is "playing"
-	client.user.setActivity(config.activity)
-		.then(console.log(`Successfully set Screambot's activity: ${config.activity}`))
-		.catch(logError)
+		.then( () => {
+			client.user.setActivity(config.activity)
+				.then(console.log(`Successfully set Screambot's activity: ${config.activity}`))
+				.catch(logError)
+		})
 })
 
 
@@ -117,7 +170,7 @@ ${guild.name} (ID: ${guild.id})
 ${guild.memberCount} members
 ---------------------------------`
 	dmTheDevs(msg)
-	console.warn(msg)
+	console.info(msg)
 })
 
 
@@ -131,7 +184,7 @@ Screambot has been removed from a server.
 ${guild.name} (ID: ${guild.id})
 ---------------------------------`
 	dmTheDevs(msg)
-	console.warn(msg)
+	console.info(msg)
 })
 
 
@@ -163,7 +216,7 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 * Sets Screambot's server-specific nicknames
 * Requires config to exist first
 */
-function updateNicknames() { //new Promise ( (resolve, reject) => {
+function updateNicknames() { //return new Promise ( (resolve, reject) => {
 	/**
 	 * @private
 	 * Get Nickname
@@ -292,7 +345,7 @@ function printRankingMembers(ranks) {
  * 
  * @return {Promise<void>} A promise pretty much just for knowing whether it worked or not
  */
-function loadConfig() { new Promise ( (resolve, reject) => {
+function loadConfig() { return new Promise ( (resolve, reject) => {
 	const firstTime = isEmpty(config)
 	console.log(`${(firstTime) ? "Loading" : "Updating"} config...`)
 
@@ -338,7 +391,7 @@ function loadConfig() { new Promise ( (resolve, reject) => {
  * 
  * @return {Promise<void>} A promise pretty much just for knowing whether it worked or not
  */
-function loadRanks() { new Promise ( (resolve, reject) => {
+function loadRanks() { return new Promise ( (resolve, reject) => {
 	const firstTime = isEmpty(ranks)
 	console.log(`${(firstTime) ? "Loading" : "Updating"} ranks...`)
 
