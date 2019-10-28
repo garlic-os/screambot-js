@@ -1,39 +1,3 @@
-
-/**
- *  Screambot
- *  A Discord bot that screams
- *  Screams when:
- *    - Pinged
- *    - Someone else screams
- *    - Someone says something (sometimes)
- * 
- *  I couldn't have done this without:
- *    - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
- *    - discord.js and its documentation: https://discord.js.org/#/
- *    - Inspiration and encouragement from friends and family
- *    - node.js lol
- *    - Viewers like you
- *        - Thank you
- * 
- *  TODO:
- *    - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
- *    - Put the functions in a sensible order
- *    - Ranks: go by server role IDs, when possible, instead of user IDs
- *    - Make things more asynchronous
- *    - Add scream variations (maybe?)
- *        - Ending h's
- *        - Ending rgh
- *        - Ending punctuation
- *        - Beginning lowercase a's
- *        - Beginning o's
- *        - o's instead of a's
- *    - Make a "help" command
- *    - Make the code for responding to pings not garbage
- *    - Schedule different messages for certain dates: https://repl.it/@Garlic_OS/temporarily
- *    - Change scream on the fly, per server
- */
-
-
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
 const config = {}
