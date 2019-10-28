@@ -1,3 +1,39 @@
+
+/**
+ *  Screambot
+ *  A Discord bot that screams
+ *  Screams when:
+ *    - Pinged
+ *    - Someone else screams
+ *    - Someone says something (sometimes)
+ * 
+ *  I couldn't have done this without:
+ *    - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
+ *    - discord.js and its documentation: https://discord.js.org/#/
+ *    - Inspiration and encouragement from friends and family
+ *    - node.js lol
+ *    - Viewers like you
+ *        - Thank you
+ * 
+ *  TODO:
+ *    - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
+ *    - Put the functions in a sensible order
+ *    - Ranks: go by server role IDs, when possible, instead of user IDs
+ *    - Make things more asynchronous
+ *    - Add scream variations (maybe?)
+ *        - Ending h's
+ *        - Ending rgh
+ *        - Ending punctuation
+ *        - Beginning lowercase a's
+ *        - Beginning o's
+ *        - o's instead of a's
+ *    - Make a "help" command
+ *    - Make the code for responding to pings not garbage
+ *    - Schedule different messages for certain dates: https://repl.it/@Garlic_OS/temporarily
+ *    - Change scream on the fly, per server
+ */
+
+
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
 const config = {}
@@ -231,7 +267,7 @@ function sayIn(channel, string) { return new Promise( (resolve, reject) => {
  * Checks if the given user ID matches an admin in the config file
  */
 function isAdmin(userId) {
-	return Object.values(config.RANKS.admins).includes(userId)
+	return Object.values(config.ADMINS).includes(userId)
 }
 
 
@@ -240,7 +276,7 @@ function isAdmin(userId) {
  * Checks if the given user ID matches a dev in the config file
  */
 function isDev(userId) {
-	return Object.values(config.RANKS.devs).includes(userId)
+	return Object.values(config.DEVS).includes(userId)
 }
 
 
@@ -366,9 +402,9 @@ function dm(user, string) { return new Promise( (resolve, reject) => {
  * Sends a DM to everyone in the dev list
  */
 function dmTheDevs(string) {
-	if (config.RANKS.devs) {
-		for (const i in config.RANKS.devs) {
-			dm(client.fetchUser(config.RANKS.devs[i]), string)
+	if (config.DEVS) {
+		for (const i in config.DEVS) {
+			dm(client.fetchUser(config.DEVS[i]), string)
 				.catch(console.error)
 		}
 	} else {
