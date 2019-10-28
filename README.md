@@ -6,29 +6,31 @@ Screams when:
 - Someone else screams
 - Someone says something (sometimes)
 
-## """""guide"""""
-Screambot still very much a work in progress, but it _does_ work. I am working toward getting it to a state where you can just invite it to your server without worrying about hosting it yourself, but if for some reason you want to use it now, here's a guide <sup>(that I made in 2 minutes)</sup> to help you get it going in its current state:
-1. Decide whether you're gonna run Screambot on your own computer/a local machine, or if you'll run it on a service like Heroku or EC2
- - If you're running it locally, the `LOCAL_MODE` environment variable should be 1. Set up node.js where you'll run it and install its dependencies (discord.js, aws-sdk, console-stamp).
- - If you're running it on a cloud server, make an S3 bucket through Amazon Web Services and put `config.json` and `ranks.json` into it. Make an IAM user that has read access to it and then fill in the S3 and AWS-related environment variables. Make sure `LOCAL_MODE` is set to 0. Upload it to a service like Heroku or EC2. Set the environment variables there instead of at `.env`.
-2. Make your bot on the Discord Developer Portal: https://discordapp.com/developers/applications/
-3. Configure `config.json` and `ranks.json` to match what server(s) you'll put Screambot on
-4. Configure the environment variables listed at [below](./#Environment%20variables)
- - The S3 and AWS-related ones aren't necessary if you're running locally
-5. Invite Screambot to your servers at https://discordapp.com/developers/applications/574092583014236160/oauth; needs permission code `67177472` and scope `bot`
-6. Run it
+## Run it yourself
+Screambot still very much a work in progress, but it _does_ work. I am working toward getting it to a state where you can just invite it to your server without worrying about hosting it yourself, but if for some reason you want to use it now, here's a guide:
+### Run it on your own machine
+1. Download it
+2. Open a command line (maybe do the following as part of a batch file)
+3. Set the environment variables listed below
+4. `start index.js`
+
+### Run it on a PaaS
+1. If you haven't already, set up an account with a service that lets you run code on one of their servers. I recommend Heroku or EC2.
+2. Make a project and link it to this GitHub page (or download it and upload the source manually)
+3. Set the environment variables
+4. Use **worker** type. **Do not** use web type. 
 
 
 ## Environment variables
-| Name | Description |
-| --- | --- |
-| DISCORD_BOT_TOKEN | The token you get when you make a Discord bot. discord.js uses this to log in. |
-| S3_BUCKET_NAME | The name of the S3 bucket Screambot will look for files in. |
-| AWS_ACCESS_KEY_ID | The credentials for a user that can access the specified S3 bucket. |
-| AWS_SECRET_ACCESS_KEY | Like part 2 for above?? idk completely how this works tbh but you need them both. |
-| CONFIG_FILENAME | The name of the file on the designated S3 bucket. |
-| RANKS_FILENAME | CONFIG_FILENAME, but for the ranks file. |
-| LOCAL_MODE | <ul><li>When 1, CONFIG_FILENAME and RANKS_FILENAME point to files on the same machine as Screambot instead of an S3 bucket. Useful for when you just want to run it on your own computer, instead of on a server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY won't be used and don't need to be specified.</li><li>When 0, CONFIG_FILENAME and RANKS_FILENAME point to files on the given S3 bucket. Necessary for when running from a cloud server like Heroku. S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY must be filled out.</li></ul> |
+| Name | Description | Example |
+| --- | --- | --- |
+| `DISCORD_BOT_TOKEN` | The token you get when you make a Discord bot. discord.js uses this to log in. | `GEJG8tOVnw2Hyh4Olu.sBxf2FyEaQJ.cMq.lfsLzrSIzMFNf9d3qTqxRrnq` |
+| `CHANNELS` | A JSON-encoded dictionary of the channels Screambot is allowed to scream in. | `{"random server name or whatever you want - #general":"<CHANNEL ID HERE>"}` |
+| `NICKNAMES` | A JSON-encoded dictionary of any server-specific nicknames Screambot has. | `"a server": ["<SERVER ID HERE>", "Screamy Boye"]` |
+| `ADMINS` | A JSON-encoded dictionary of the users that are allowed to use Screambot's admin commands. | `{"Your friend":"<USER ID HERE>"}` |
+| `DEVS` | A JSON-encoded dictionary of the users that are allowed to use Screambot's dev commands. | `{"You, probably":"<USER ID HERE>"}` |
+| `DO_NOT_REPLY` | A JSON-encoded dictionary of the users that Screambot won't reply to. | `{"Naughty boy":"<USER ID HERE>"}` |
+| `RANDOM_REPLY_CHANCE` | Percent chance that Screambot will scream in response to a regular message | `0.5` |
 
 ## TODO
 In no particular order:
