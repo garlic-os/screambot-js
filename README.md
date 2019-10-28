@@ -33,27 +33,15 @@ Screambot still very much a work in progress, but it _does_ work. I am working t
 | `RANDOM_REPLY_CHANCE` | Percent chance that Screambot will scream in response to a regular message | `0.5` |
 
 ## TODO
-In no particular order:
 - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
 - Put the functions in a sensible order
 - Ranks: go by server role IDs, when possible, instead of user IDs
 - Make things more asynchronous
 - Add scream variations (maybe?)
-  - Ending h's
-  - Ending rgh
-  - Ending punctuation
-  - Beginning lowercase a's
-  - Beginning o's
-  - o's instead of a's
 - Make a "help" command
-- Merge ranks.json with config.json?
 - Make the code for responding to pings not garbage
-- Schedule different messages for certain dates: https://repl.it/@Garlic_OS/temporarily
+- Schedule different messages for certain dates
 - Change scream on the fly, per server
-- Fix the "update" command
-- Rework Screambot to use different configurations on each server (very important, need to focus on this)
-- Make configuration fully editable from chat commands (also important)
-- Rework config and ranks variables to use Maps instead of plain Objects (maybe?)
 
 
 ## Thanks
