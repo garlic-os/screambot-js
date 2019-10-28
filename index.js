@@ -1,3 +1,18 @@
+// Load environment variables to const config
+// JSON parse any value that is JSON parseable
+const config = {}
+for (const key in process.env) {
+	try {
+		config[key] = JSON.parse(process.env[key])
+	} catch (e) {
+		config[key] = process.env[key]
+	}
+}
+
+if (config.NODE_ENV === "production")
+	process.on("unhandledRejection", logError)
+else
+	process.on("unhandledRejection", up => { throw up })
 
 require("console-stamp")(console, {
 	datePrefix: "",
@@ -5,33 +20,10 @@ require("console-stamp")(console, {
 	pattern: " "
 })
 
-console.log("Screambot started.")
-
-// Because "0" and "false" don't evaluate to false by themselves in JavaScript
-const localMode = process.env.LOCAL_MODE != "0" && process.env.LOCAL_MODE != "false"
-
-// Helpful for debugging
-process.on("unhandledRejection", up => { throw up })
-
 // Requirements
 const Discord = require("discord.js")
-const AWS = require("aws-sdk") // for accessing remote files in an S3 bucket
-const fs = require("fs") // for accessing local files
-
-// Set up AWS to fetch files from an S3 bucket
-AWS.config.update({
-	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-})
-const s3 = new AWS.S3()
 
 const client = new Discord.Client()
-
-global.config = {}
-global.ranks  = {}
-
-loadRanks()
-loadConfig()
 
 /**
  * On Ready
@@ -40,12 +32,21 @@ loadConfig()
  */
 client.on("ready", () => {
 	updateNicknames()
-	client.user.setActivity(config.activity)
-		.then(console.log(`Successfully set Screambot's activity: ${config.activity}`))
-		.catch(logError)
+	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
 	console.log(`Logged in as ${client.user.tag}.\n`)
-	if (localMode) dmTheDevs("Logged in.") // Gets SUPER annoying when Heroku refreshes your program every day, so only while on local mode
+
+	channelTable().then(table => {
+		console.info("Channels:")
+		console.table(table)
+	})
+	.catch(console.warn)
+
+	nicknameTable().then(table => {
+		console.info("Nicknames:")
+		console.table(table)
+	})
+	.catch(console.info)
 })
 
 
@@ -66,7 +67,6 @@ client.on("message", message => {
 
 				screamIn(message.channel)
 					.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
-					.catch(logError)
 			}
 		}
 
@@ -75,7 +75,6 @@ client.on("message", message => {
 			console.log(`${locationString(message)} ${message.author.username} has screamed.`)
 			screamIn(message.channel)
 				.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
-				.catch(logError)
 		}
 
 		// Always scream at DM's
@@ -83,7 +82,6 @@ client.on("message", message => {
 			console.log(`[Direct message] ${message.author.username} sent Screambot a DM.`)
 			screamIn(message.channel)
 				.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
-				.catch(logError)
 		}
 		
 		// If the message is nothing special, maybe scream anyway
@@ -92,7 +90,6 @@ client.on("message", message => {
 				console.log(`${locationString(message)} Screambot has randomly decided to reply to ${message.author.username}'s message.`)
 				screamIn(message.channel)
 					.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
-					.catch(logError)
 			}
 		}
 	}
@@ -130,207 +127,40 @@ ${guild.name} (ID: ${guild.id})
 
 // Log into Discord
 console.log("Logging in...")
-client.login(process.env.DISCORD_BOT_TOKEN)
+client.login(config.DISCORD_BOT_TOKEN)
 
 
 // --- Functions -------------------------
 
 
 /**
-* Update nicknames
-* Sets Screambot's server-specific nicknames
-* Requires config to exist first
-*/
-function updateNicknames() { return new Promise ( (resolve, reject) => {
-	/**
-	 * Get Nickname
-	 * Returns the nickname corresponding
-	 *   to the given server
-	 */
-	function _getNickname(serverId) {
-		for (const i in config.nicknames) {
-			if (config.nicknames[i].id == serverId)
-				return config.nicknames[i]
-		}
-		return null
-	}
+ * Sets the custom nicknames from the config file
+ * 
+ * @return {Promise<void>} Whether there were errors or not
+ */
+function updateNicknames() {
+	return new Promise ( (resolve, reject) => {
+		var erred = false
 
-	var erred = false
-
-	for (const server of client.guilds.values()) {
-		const nickname = _getNickname(server.id)
-		if (nickname) {
-			server.me.setNickname(nickname.name)
-				.then(console.log(`Custom nickname in ${client.guilds.get(nickname.id)}: ${nickname.name}.\n`))
+		for (const serverName in config.NICKNAMES) {
+			const pair = config.NICKNAMES[serverName]
+			const server = client.guilds.get(pair[0])
+			if (!server) {
+				console.warn(`${config.NAME} isn't in ${pair[0]}! Nickname cannot be set here.`)
+				continue
+			}
+			server.me.setNickname(pair[1])
 				.catch(err => {
 					erred = true
 					logError(err)
 				})
 		}
-	}
 
-	(erred)
-		? reject()
-		: resolve()
-
-})}
-
-
-/**
- * Access
- * Reads a file either from S3_BUCKET_NAME
- *   or locally, depending on LOCAL_MODE
- *   
- * Resolves to a Buffer, intended
- *   to be JSON parsed
- * 
- * If LOCAL_MODE is on, it will also
- *   watch the file for changes and
- *   call the callback.
- */
-function access(fileName, cb) { return new Promise( (resolve, reject) => {
-	if (localMode) { // read local file
-		fs.watchFile(fileName, cb)
-		const fileBuffer = fs.readFileSync(`./${fileName}`)
-		if (fileBuffer === undefined || fileBuffer === null)
-			reject(fileBuffer)
-		else
-			resolve(fileBuffer)
-	}
-	
-	else { // read remote file from S3 bucket
-		const params = {
-			Bucket: process.env.S3_BUCKET_NAME, 
-			Key: fileName
-		}
-
-		s3.getObject(params, (err, data) => {
-			if (data.Body === undefined || data.Body === null) {
-				reject(data.Body)
-			} else {
-				if (err)
-					reject(err)
-				else
-					resolve(data.Body)
-			}	
-		})
-	}
-})}
-
-
-/**
- * Print Registered Channels
- * Prints to console all the channels
- *   that are listed in the given
- *   config object
- * 
- *  Yeah, yeah, I know about console.table.
- *  For some reason I couldn't get my data
- *    formatted how I want with it.
- */
-function printRegisteredChannels(channels) {
-	if (Object.keys(channels).length == 0) {
-		console.warn("No channels specified to scream in.")
-	} else {
-		console.info("Channels:")
-		for (const chName in channels) {
-			console.info(`    ${chName} (ID: ${channels[chName].id})`)
-		}
-		console.info()
-	}
-}
-
-
-/**
- * Print Ranking members
- * Prints to console all the users
- *   who are listed in the given
- *   ranks object
- */
-function printRankingMembers(ranks) {
-	for (const rankName in ranks) {
-		console.info(`${rankName}:`)
-		for (const userName in ranks[rankName]) {
-			console.info(`    ${userName}`)
-		}
-		console.info()
-	}
-}
-
-
-/**
- * Load Config
- * Accesses the config JSON file from CONFIG_PATH,
- * converts it to an Object,
- * stores it as config, and
- * applies server-specific nicknames
- * 
- * @return {Promise<void>} A promise pretty much just for knowing whether it worked or not
- */
-function loadConfig() { return new Promise ( (resolve, reject) => {
-	const firstTime = isEmpty(config)
-	console.log(`${(firstTime) ? "Loading" : "Updating"} config...`)
-
-	access(process.env.CONFIG_FILENAME, loadConfig).then(body => {
-		try { config = JSON.parse(body) } // Set the config variable
-		catch (err) {
-			if (firstTime) {
-				crashWith(Error("The given config file is invalid! Screambot cannot continue.", err))
-				return
-			} else {
-				logError(Error("The given config file is invalid! Keeping the old config.", err))
-				return
-			}
-		}
-		printRegisteredChannels(config.channels)
-		console.log(`Config successfully ${(firstTime) ? "loaded" : "updated"}.`)
+		if (erred) return reject()
 		resolve()
+
 	})
-	.catch (err => {
-		(firstTime)
-			? crashWith(Error("Could not access the config file! Screambot cannot continue.", err))
-			: logError(Error("Could not access the config file! Keeping the old configuration.", err))
-
-		reject()
-	})
-})}
-
-
-/**
- * Load Ranks
- * Accesses the ranks JSON file specifed in RANKS_PATH
- * Converts it to an Object
- * Sets it as Ranks
- * 
- * @return {Promise<void>} A promise pretty much just for knowing whether it worked or not
- */
-function loadRanks() { return new Promise ( (resolve, reject) => {
-	const firstTime = isEmpty(ranks)
-	console.log(`${(firstTime) ? "Loading" : "Updating"} ranks...`)
-
-	access(process.env.RANKS_FILENAME, loadRanks).then(body => {
-		try { ranks = JSON.parse(body) } // Set the ranks variable
-		catch (err) {
-			if (firstTime) {
-				crashWith(Error("The given ranks file is invalid! Screambot cannot continue."), err)
-				return
-			} else {
-				logError(Error("The given ranks file is invalid! Keeping the old ranks."), err)
-				return
-			}
-		}
-		printRankingMembers(config.ranks)
-		console.log(`Ranks successfully ${(firstTime) ? "loaded" : "updated"}.`)
-		resolve()
-	})
-	.catch (err => {
-		(firstTime)
-			? crashWith("Could not access the ranks file! Screambot cannot continue.", err)
-			: logError("Could not access the ranks file! Keeping the old ranks.", err)
-
-		reject()
-	})
-})}
+}
 
 
 /**
@@ -358,12 +188,12 @@ function generateScream() {
 /**
  * Random Reply Chance
  * 
- * Returns a boolean based on config.randomreplychance
+ * Returns a boolean based on RANDOM_REPLY_CHANCE
  * 
  * @return {boolean} Whether to reply or not
  */
 function randomReplyChance() {
-	return (Math.random() * 100 <= config.randomreplychance)
+	return (Math.random() * 100 <= config.RANDOM_REPLY_CHANCE)
 }
 
 
@@ -401,7 +231,7 @@ function sayIn(channel, string) { return new Promise( (resolve, reject) => {
  * Checks if the given user ID matches an admin in the config file
  */
 function isAdmin(userId) {
-	return Object.values(ranks.admins).includes(userId)
+	return Object.values(config.ADMINS).includes(userId)
 }
 
 
@@ -410,14 +240,13 @@ function isAdmin(userId) {
  * Checks if the given user ID matches a dev in the config file
  */
 function isDev(userId) {
-	return Object.values(ranks.devs).includes(userId)
+	return Object.values(config.DEVS).includes(userId)
 }
 
 
 /**
  * Command
  * Parses and executes commands received from a Screambot ranked official
- * Ranks are in the config file
  * 
  * Admins can only execute admin commands
  * Devs can execute both admin and dev commands
@@ -447,14 +276,16 @@ function command(message) { try {
 	const keyword = cmd.shift()
 
 	// -- COMMAND LIST --
+
 	if (rank >= 1) { // Admin (and up) commands
 		switch (keyword) {
 			case "shutdown":
 				sayIn(message.channel, "AAAAAAAAAAA SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 					.then(message => console.log(`${locationString(message)} Sent the shutdown message, "${message.content}".`))
-					.catch(logError)
 				process.exit(cmd.join(" "))
-				return true
+				break
+			default:
+				return false
 		}
 	}
 	if (rank >= 2) { // Dev (and up) commands
@@ -463,94 +294,32 @@ function command(message) { try {
 			case "say":
 				sayIn(message.channel, cmd.join(" "))
 					.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
-					.catch(logError)
-				return true
+				break
 
 			case "sayin":
 				const sayin_channelId = cmd.shift()
 				if (client.channels.has(sayin_channelId))
 					sayIn(client.channels.get(sayin_channelId), cmd.join(" "))
 						.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
-						.catch(logError)
 				else
 					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SPEAK THERE AAAAAAAAAAAAAA")
 						.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
-						.catch(logError)
-				return true
+				break
 
 			case "screamin":
 				if (client.channels.has(cmd[0]))
 					screamIn(client.channels.get(cmd[0]))
 						.then(message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`))
-						.catch(logError)
 				else
 					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SCREAM THERE AAAAAAAAAAAAAA")
 						.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
-						.catch(logError)
-				return true
+				break
 
-			case "update":
-				const updateWhat = cmd.shift()
-				console.log(updateWhat)
-				switch(updateWhat) {
-					case "config":
-						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING CONFIG AAAAAAAAAAAAAA")
-							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
-							.catch(logError)
-						loadConfig(false)
-							.then( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA CONFIG UPDATED AAAAAAAAAAAAAA")
-										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
-										.catch(logError)
-							})
-							.catch( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA COULDN'T UPDATE THE CONFIG CHECK THE LOGS AAAAAAAAAAAAAA")
-									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
-									.catch(logError)
-							})
-						return true
-					case "ranks":
-						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING RANKS AAAAAAAAAAAAAA")
-							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
-							.catch(logError)
-						loadRanks(false)
-							.then( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA RANKS UPDATED AAAAAAAAAAAAAA")
-										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
-										.catch(logError)
-							})
-							.catch( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA COULDN'T UPDATE THE RANKS CHECK THE LOGS AAAAAAAAAAAAAA")
-									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
-									.catch(logError)
-							})
-						return true
-					case "nicknames":
-						sayIn(message.channel, "AAAAAAAAAAAAAA UPDATING NICKNAMES AAAAAAAAAAAAAA")
-							.then(message => console.log(`${locationString(message)} Promised, "${message.content}".`))
-							.catch(logError)
-						updateNicknames()
-							.then( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA NICKNAMES UPDATED AAAAAAAAAAAAAA.")
-										.then(message => console.log(`${locationString(message)} Resolved, "${message.content}".`))
-										.catch(logError)
-							})
-							.catch( () => {
-								sayIn(message.channel, "AAAAAAAAAAAAAA NICKNAMED UPDATED WITH ERRORS CHECK THE LOGS AAAAAAAAAAAAAA")
-									.then(message => console.log(`${locationString(message)} Rejected, "${message.content}".`))
-									.catch(logError)
-							})
-						return true
-					default:
-						sayIn(message.channel, `AAAAAAAAAAAAAA I CAN ONLY UPDATE CONFIG, RANKS, AND NICKNAMES AAAAAAAAAAAAAA`)
-							.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
-							.catch(logError)
-						return true
-				}
-				return true
+			default:
+				return false
 		}
 	}
-	return false
+	return true
 } catch (err) { logError(Error(`A command caused an error: ${message}`, err)) } }
 
 
@@ -560,7 +329,7 @@ function command(message) { try {
  *   donotreply list
  */
 function inDoNotReply(userId) {
-	return Object.values(config.donotreply).includes(userId) || userId == client.user.id
+	return Object.values(config.DO_NOT_REPLY).includes(userId) || userId == client.user.id
 }
 
 
@@ -576,21 +345,6 @@ function logError(errObj) {
 	(errObj.message)
 		? dmTheDevs(`ERROR! ${errObj.message}`)
 		: dmTheDevs(`ERROR! ${errObj}`)
-}
-
-
-/**
- * Crash with
- * Logs the error(s)
- * DM's the devs the error(s)
- * Exits
- * Throws the error(s)
- * 
- * For fatal errors
- */
-function crashWith(errObj) {
-	logError(errObj)
-	process.exit(1)
 }
 
 
@@ -612,9 +366,9 @@ function dm(user, string) { return new Promise( (resolve, reject) => {
  * Sends a DM to everyone in the dev list
  */
 function dmTheDevs(string) {
-	if (ranks.devs) {
-		for (const i in ranks.devs) {
-			dm(client.users.get(ranks.devs[i]), string)
+	if (config.DEVS) {
+		for (const i in config.DEVS) {
+			dm(client.fetchUser(config.DEVS[i]), string)
 				.catch(console.error)
 		}
 	} else {
@@ -630,11 +384,11 @@ function dmTheDevs(string) {
 /**
  * Channel ID is Allowed
  * Returns whether a channel ID is in
- *   the list of channels in the config file
+ *   the list of channels in config
  */
 function channelIdIsAllowed(channelId) {
-	for (const i in config.channels) {
-		if (config.channels[i].id === channelId)
+	for (const i in config.CHANNELS) {
+		if (config.CHANNELS[i] === channelId)
 			return true
 	}
 	return false
@@ -669,13 +423,61 @@ function locationString(message) {
 
 
 /**
- * Is Empty
- * Determines if an object is empty
+ * Generates an object containing stats about
+ *   what channels are whitelisted.
+ * 
+ * @example
+ *     channelTable().then(console.table)
  */
+function channelTable() {
+	return new Promise( (resolve, reject) => {
+		if (isEmpty(config.CHANNELS))
+			return reject("No channels are whitelisted.")
+
+		const stats = {}
+		for (const i in config.CHANNELS) {
+			const channelId = config.CHANNELS[i]
+			const channel = client.channels.get(channelId)
+			const stat = {}
+			stat["Server"] = channel.guild.name
+			stat["Name"] = "#" + channel.name
+			stats[channelId] = stat
+		}
+		resolve(stats)
+	})
+}
+
+
+/**
+ * Generates an object containing stats about
+ *   what nicknames Bipolar has and what
+ *   servers in which she has them.
+ * 
+ * @example
+ *     nicknameTable().then(console.table)
+ */
+function nicknameTable() {
+	return new Promise( (resolve, reject) => {
+		if (isEmpty(config.NICKNAMES))
+			return reject("No nicknames defined.")
+
+		const stats = {}
+		for (const i in config.NICKNAMES) {
+			const pair = config.NICKNAMES[i]
+			const server = client.guilds.get(pair[0])
+			const stat = {}
+			stat["Server"] = server.name
+			stat["Nickname"] = server.me.nickname
+			stats[pair] = stat
+		}
+		resolve(stats)
+	})
+}
+
 function isEmpty(obj) {
 	for (const key in obj) {
 		if (obj.hasOwnProperty(key))
-			return false
-	}
+    		return false
+		}
 	return true
-};
+}

@@ -1,9 +1,0 @@
-{
-	"admins": {
-		"Thing 1": "123412341234123412",
-		"Thing 2": "567856785678567856"
-	},
-	"devs": {
-		"You": "Strongly recommended you put your own ID here so you can issue it all the commands"
-	}
-}
