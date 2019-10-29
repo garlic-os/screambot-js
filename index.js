@@ -20,9 +20,7 @@ require("console-stamp")(console, {
 	pattern: " "
 })
 
-// Requirements
 const Discord = require("discord.js")
-
 const client = new Discord.Client()
 
 /**
@@ -462,13 +460,14 @@ function nicknameTable() {
 			return reject("No nicknames defined.")
 
 		const stats = {}
-		for (const i in config.NICKNAMES) {
-			const pair = config.NICKNAMES[i]
-			const server = client.guilds.get(pair[0])
+		for (const serverName in config.NICKNAMES) {
+			const [ serverId, nickname ] = config.NICKNAMES[serverName]
+			const server = client.guilds.get(serverId)
 			const stat = {}
 			stat["Server"] = server.name
-			stat["Nickname"] = server.me.nickname
-			stats[pair] = stat
+			stat["Intended"] = nickname
+			stat["De facto"] = server.me.nickname
+			stats[serverId] = stat
 		}
 		resolve(stats)
 	})
