@@ -34,17 +34,17 @@ client.on("ready", () => {
 
 	console.log(`Logged in as ${client.user.tag}.\n`)
 
-	channelTable().then(table => {
+	channelTable().then(data => {
 		console.info("Channels:")
-		console.table(table)
+		console.table(data)
 	})
 	.catch(console.warn)
 
-	nicknameTable().then(table => {
+	nicknameTable().then(data => {
 		console.info("Nicknames:")
-		console.table(table)
+		console.table(data)
 	})
-	.catch(console.info)
+	.catch(console.warn)
 })
 
 
@@ -225,20 +225,28 @@ function sayIn(channel, string) { return new Promise( (resolve, reject) => {
 
 
 /**
- * Is Admin
- * Checks if the given user ID matches an admin in the config file
+ * Is [val] in [obj]?
+ * 
+ * @param {any} val
+ * @param {Object} object
+ * @return {Boolean} True/false
  */
-function isAdmin(userId) {
-	return Object.values(config.ADMINS).includes(userId)
+function has(val, obj) {
+	for (const i in obj) {
+		if (obj[i] === val)
+			return true
+	}
+	return false
 }
 
 
-/**
- * Is Dev
- * Checks if the given user ID matches a dev in the config file
- */
+function isAdmin(userId) {
+	return has(userId, config.ADMINS)
+}
+
+
 function isDev(userId) {
-	return Object.values(config.DEVS).includes(userId)
+	return has(userId, config.DEVS)
 }
 
 
