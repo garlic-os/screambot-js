@@ -1,24 +1,35 @@
+"use strict"
+
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
 const config = {}
 for (const key in process.env) {
 	try {
-		config[key] = JSON.parse(process.env[key])
+		config[key] = JSON.parse(process.env[key].replace(`"`, `'`))
 	} catch (e) {
 		config[key] = process.env[key]
 	}
 }
 
+// Log errors when in production; crash when not in production
 if (config.NODE_ENV === "production")
 	process.on("unhandledRejection", logError)
 else
 	process.on("unhandledRejection", up => { throw up })
 
-require("console-stamp")(console, {
-	datePrefix: "",
-	dateSuffix: "",
-	pattern: " "
-})
+// Overwrite console methods with empty ones if logging is disabled
+if (config.DISABLE_LOGS) {
+	const methods = ["log", "debug", "warn", "info", "table"]
+    for (const method of methods) {
+        console[method] = () => {}
+    }
+} else {
+	require("console-stamp")(console, {
+		datePrefix: "",
+		dateSuffix: "",
+		pattern: " "
+	})
+}
 
 const Discord = require("discord.js")
 const client = new Discord.Client()
@@ -29,20 +40,20 @@ const client = new Discord.Client()
  *   logs into Discord
  */
 client.on("ready", () => {
+	console.info(`Logged in as ${client.user.tag}.\n`)
 	updateNicknames()
 	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`))
 
-	console.log(`Logged in as ${client.user.tag}.\n`)
-
-	channelTable().then(data => {
+	channelTable(config.CHANNELS).then(table => {
 		console.info("Channels:")
-		console.table(data)
+		console.table(table)
 	})
 	.catch(console.warn)
 
-	nicknameTable().then(data => {
+	nicknameTable(config.NICKNAMES).then(table => {
 		console.info("Nicknames:")
-		console.table(data)
+		console.table(table)
 	})
 	.catch(console.warn)
 })
@@ -75,8 +86,8 @@ client.on("message", message => {
 				.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
 		}
 
-		// Always scream at DM's
-		else if (message.channel.type == "dm") {
+		// Always scream at DMs
+		else if (message.channel.type === "dm") {
 			console.log(`[Direct message] ${message.author.username} sent Screambot a DM.`)
 			screamIn(message.channel)
 				.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
@@ -134,36 +145,32 @@ client.login(config.DISCORD_BOT_TOKEN)
 /**
  * Sets the custom nicknames from the config file
  * 
- * @return {Promise<void>} Whether there were errors or not
+ * @async
+ * @return {Promise<void>} Resolve: nothing (there were no errors); Reject: array of errors
  */
-function updateNicknames() {
-	return new Promise ( (resolve, reject) => {
-		var erred = false
+async function updateNicknames(nicknameDict) {
+	const errors = []
 
-		for (const serverName in config.NICKNAMES) {
-			const pair = config.NICKNAMES[serverName]
-			const server = client.guilds.get(pair[0])
-			if (!server) {
-				console.warn(`${config.NAME} isn't in ${pair[0]}! Nickname cannot be set here.`)
-				continue
-			}
-			server.me.setNickname(pair[1])
-				.catch(err => {
-					erred = true
-					logError(err)
-				})
+	for (const serverName in nicknameDict) {
+		const [ serverId, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverId)
+		if (!server) {
+			console.warn(`Nickname configured for a server that Bipolar is not in. Nickname could not be set in ${serverName} (${serverId}).`)
+			continue
 		}
+		server.me.setNickname(nickname)
+			.catch(errors.push)
+	}
 
-		if (erred) return reject()
-		resolve()
-
-	})
+	if (errors.length > 0)
+		throw errors
+	else
+		return
 }
 
 
 /**
- * Generate Scream
- * Generates a 1-100 character string of capital A's
+ * Generates a 1-100 character string of capital A's.
  * 
  * @return {string} scream
  */
@@ -184,14 +191,12 @@ function generateScream() {
 
 
 /**
- * Random Reply Chance
- * 
- * Returns a boolean based on RANDOM_REPLY_CHANCE
+ * Returns a boolean based on RANDOM_REPLY_CHANCE.
  * 
  * @return {boolean} Whether to reply or not
  */
 function randomReplyChance() {
-	return (Math.random() * 100 <= config.RANDOM_REPLY_CHANCE)
+	return Math.random() * 100 <= config.RANDOM_REPLY_CHANCE
 }
 
 
@@ -199,29 +204,31 @@ function randomReplyChance() {
  * Scream In
  * Generates a scream with generateScream()
  *   and sends it to the given channel with sayIn()
+ * 
+ * @async
+ * @param {Channel} channel - channel to scream in
+ * @return {Promise<Message|Error>} Resolve: message sent; Reject: error message
  */
-function screamIn(channel) { return new Promise( (resolve, reject) => {
-	sayIn(channel, generateScream())
-		.then(resolve)
-		.catch(reject)
-})}
+async function screamIn(channel) {
+	return await sayIn(channel, generateScream())
+}
 
 
 /**
- * Say In
- * Sends a message to a channel
- * Rejects if the channel is not whitelisted
- *   or if the send command screws up 
+ * Send a message to a channel.
+ * Rejects if the channel is not whitelisted.
+ * 
+ * @async
+ * @param {Channel} channel - channel to send the message to
+ * @param {string} string - message to send
+ * @return {Promise<Message|string>} Resolve: Message object that was sent; Reject: error message
  */
-function sayIn(channel, string) { return new Promise( (resolve, reject) => {
-	if (channelIdIsAllowed(channel.id) || channel.type == "dm") {
-		channel.send(string)
-			.then(resolve)
-			.catch(reject)
-	} else {
-		reject(`Screambot is not allowed to scream in [${channel.guild.name} - #${channel.name}].`)
-	}
-})}
+async function sayIn(channel, string) {
+	if (channelIdIsAllowed(channel.id) || channel.type == "dm")
+		return await channel.send(string)
+
+	throw `Screambot is not allowed to scream in [${channel.guild.name} - #${channel.name}].`
+}
 
 
 /**
@@ -259,6 +266,8 @@ function isDev(userId) {
  * 
  * Returns true if a command was executed
  * Returns false if no command was executed
+ * 
+ * Here be dragons
  * 
  * Command syntax:
  * "@Screambot [command] [args space delimited]"
@@ -340,11 +349,10 @@ function inDoNotReply(userId) {
 
 
 /**
- * Log Error
- * DM's the dev(s) a string
- * Then console.error()'s that string
+ * DM the dev(s) and console.error a message.
+ * For nonfatal errors.
  * 
- * For nonfatal errors
+ * @param {Error|string} errObj - error object or string
  */
 function logError(errObj) {
 	console.error(errObj); // Semicolon randomly required to prevent a TypeError
@@ -355,26 +363,32 @@ function logError(errObj) {
 
 
 /**
- * DM
  * It DM's someone.
+ * 
+ * @async
+ * @param {User} user - User to DM
+ * @param {string} string - message to send
+ * @return {Promise<Object|Error>} Resolve: object containing the input arguments; Reject: error message
  */
-function dm(user, string) { return new Promise( (resolve, reject) => {
-	if (user === undefined) reject(`User is undefined.`)
-
-	user.send(string)
-		.then(resolve( { user: user, string: string } ))
-		.catch(reject)
-})}
+async function dm(user, string) {
+	if (!user) throw `User does not exist.`
+	await user.send(string)
+	return { user: user, string: string }
+}
 
 
 /**
- * DM the Devs
- * Sends a DM to everyone in the dev list
+ * Send a DM to everyone in the dev list.
+ * 
+ * @async
+ * @param {string} string - message to send
+ * @return {Promise<undefined|Error>} Resolve: nothing; Reject: error
  */
-function dmTheDevs(string) {
+async function dmTheDevs(string) {
 	if (config.DEVS) {
 		for (const i in config.DEVS) {
-			dm(client.fetchUser(config.DEVS[i]), string)
+			const user = await client.fetchUser(config.DEVS[i])
+			dm(user, string)
 				.catch(console.error)
 		}
 	} else {
@@ -430,56 +444,68 @@ function locationString(message) {
 
 /**
  * Generates an object containing stats about
- *   what channels are whitelisted.
+ *   all the channels in the given dictionary.
+ * 
+ * @async
+ * @param {Object} channelDict - Dictionary of channels
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object
  * 
  * @example
- *     channelTable().then(console.table)
+ *     channelTable(config.SPEAKING_CHANNELS)
+ *         .then(console.table)
  */
-function channelTable() {
-	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.CHANNELS))
-			return reject("No channels are whitelisted.")
+async function channelTable(channelDict) {
+	if (config.DISABLE_LOGS)
+		return {}
+	
+	if (isEmpty(channelDict))
+		throw "No channels are whitelisted."
 
-		const stats = {}
-		for (const i in config.CHANNELS) {
-			const channelId = config.CHANNELS[i]
-			const channel = client.channels.get(channelId)
-			const stat = {}
-			stat["Server"] = channel.guild.name
-			stat["Name"] = "#" + channel.name
-			stats[channelId] = stat
-		}
-		resolve(stats)
-	})
+	const stats = {}
+	for (const i in channelDict) {
+		const channelId = channelDict[i]
+		const channel = client.channels.get(channelId)
+		const stat = {}
+		stat["Server"] = channel.guild.name
+		stat["Name"] = "#" + channel.name
+		stats[channelId] = stat
+	}
+	return stats
 }
 
 
 /**
  * Generates an object containing stats about
- *   what nicknames Bipolar has and what
- *   servers in which she has them.
+ *   all the nicknames Bipolar has.
+ * 
+ * @async
+ * @param {Object} nicknameDict - Dictionary of nicknames
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object"
  * 
  * @example
- *     nicknameTable().then(console.table)
+ *     nicknameTable(config.NICKNAMES)
+ *         .then(console.table)
  */
-function nicknameTable() {
-	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.NICKNAMES))
-			return reject("No nicknames defined.")
+async function nicknameTable(nicknameDict) {
+	if (config.DISABLE_LOGS)
+		return {}
+	
+	if (isEmpty(nicknameDict))
+		throw "No nicknames defined."
 
-		const stats = {}
-		for (const serverName in config.NICKNAMES) {
-			const [ serverId, nickname ] = config.NICKNAMES[serverName]
-			const server = client.guilds.get(serverId)
-			const stat = {}
-			stat["Server"] = server.name
-			stat["Intended"] = nickname
-			stat["De facto"] = server.me.nickname
-			stats[serverId] = stat
-		}
-		resolve(stats)
-	})
+	const stats = {}
+	for (const serverName in nicknameDict) {
+		const [ serverId, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverId)
+		const stat = {}
+		stat["Server"] = server.name
+		stat["Intended"] = nickname
+		stat["De facto"] = server.me.nickname
+		stats[serverId] = stat
+	}
+	return stats
 }
+
 
 function isEmpty(obj) {
 	for (const key in obj) {
