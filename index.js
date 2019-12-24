@@ -31,6 +31,13 @@ if (config.DISABLE_LOGS) {
 	})
 }
 
+const log = {
+	  say:    message => console.log(`${locationString(message)} Sent the message, "${message.content}".`)
+	, scream: message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`)
+	, screamReply: message => console.log(`Replied with a ${message.content.length} A's\n.`)
+	, error:  message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`)
+}
+
 const Discord = require("discord.js")
 const client = new Discord.Client()
 
@@ -75,7 +82,7 @@ client.on("message", message => {
 				console.log(`${locationString(message)} Pinged by ${message.author.username}.`)
 
 				screamIn(message.channel)
-					.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
+					.then(log.screamReply)
 			}
 		}
 
@@ -83,14 +90,14 @@ client.on("message", message => {
 		else if (isScream(message.content)) {
 			console.log(`${locationString(message)} ${message.author.username} has screamed.`)
 			screamIn(message.channel)
-				.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
+				.then(log.screamReply)
 		}
 
 		// Always scream at DMs
 		else if (message.channel.type === "dm") {
 			console.log(`[Direct message] Received a DM from ${message.author.username}.`)
 			screamIn(message.channel)
-				.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
+				.then(log.screamReply)
 		}
 		
 		// If the message is nothing special, maybe scream anyway
@@ -98,7 +105,7 @@ client.on("message", message => {
 			if (randomReplyChance()) {
 				console.log(`${locationString(message)} Randomly decided to reply to ${message.author.username}'s message.`)
 				screamIn(message.channel)
-					.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
+					.then(log.screamReply)
 			}
 		}
 	}
@@ -155,7 +162,7 @@ async function updateNicknames(nicknameDict) {
 		const [ serverId, nickname ] = nicknameDict[serverName]
 		const server = client.guilds.get(serverId)
 		if (!server) {
-			console.warn(`Nickname configured for a server that Bipolar is not in. Nickname could not be set in ${serverName} (${serverId}).`)
+			console.warn(`Nickname configured for a server that Screambot is not in. Nickname could not be set in ${serverName} (${serverId}).`)
 			continue
 		}
 		server.me.setNickname(nickname)
@@ -273,69 +280,48 @@ function isDev(userId) {
  * "@Screambot [command] [args space delimited]"
  */
 function command(message) { try {
-	if (!message.content.includes(" ")) return false
+	const authorId = message.author.id
+	if (!(message.content.includes(" ") // Message has to have a space (more than one word)
+	&& (isAdmin(authorId) || isDev(authorId)))) // and come from an admin or dev
+		return false
 	
 	console.log(`${locationString(message)} Received a command from ${message.author.username}.`)
 
-	// Rank check
-	const authorId = message.author.id
-	let rank = 0
-	if      (isAdmin(authorId)) rank = 1 // Admin = 1
-	else if (isDev  (authorId)) rank = 2 // Dev   = 2
-
-	let cmd = message.content.toLowerCase()
-	cmd = cmd.substring(cmd.indexOf(" ") + 1) // Remove the mention (i.e. <@screambotsid>)
-	console.info(`Command: ${cmd}`)
-	cmd = cmd.split(" ")
-
-	const keyword = cmd.shift()
+	const args = message.content.split(" ")
+	args.shift() // Remove "@Screambot"
+	const command = args.shift().toLowerCase()
 
 	// -- COMMAND LIST --
+	switch (command) {
+		case "say":
+			sayIn(message.channel, args.join(" "))
+				.then(log.say)
+			break
 
-	if (rank >= 1) { // Admin (and up) commands
-		switch (keyword) {
-			case "shutdown":
-				sayIn(message.channel, "AAAAAAAAAAA SHUTTING DOWN AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-					.then(message => console.log(`${locationString(message)} Sent the shutdown message, "${message.content}".`))
-				process.exit(cmd.join(" "))
-				break
-			default:
-				return false
-		}
-	}
-	if (rank >= 2) { // Dev (and up) commands
-		switch (keyword) {
+		case "sayin":
+			const channelId = args.shift() // Subtract first entry so it doesn't get in the way later
+			if (client.channels.has(channelId))
+				sayIn(client.channels.get(channelId), args.join(" "))
+					.then(log.say)
+			else
+				sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SPEAK THERE AAAAAAAAAAAAAA")
+					.then(log.error)
+			break
 
-			case "say":
-				sayIn(message.channel, cmd.join(" "))
-					.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
-				break
+		case "screamin":
+			if (client.channels.has(args[0]))
+				screamIn(client.channels.get(args[0]))
+					.then(log.scream)
+			else
+				sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SCREAM THERE AAAAAAAAAAAAAA")
+					.then(log.error)
+			break
 
-			case "sayin":
-				const sayin_channelId = cmd.shift()
-				if (client.channels.has(sayin_channelId))
-					sayIn(client.channels.get(sayin_channelId), cmd.join(" "))
-						.then(message => console.log(`${locationString(message)} Sent the message, "${message.content}".`))
-				else
-					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SPEAK THERE AAAAAAAAAAAAAA")
-						.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
-				break
-
-			case "screamin":
-				if (client.channels.has(cmd[0]))
-					screamIn(client.channels.get(cmd[0]))
-						.then(message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`))
-				else
-					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SCREAM THERE AAAAAAAAAAAAAA")
-						.then(message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`))
-				break
-
-			default:
-				return false
-		}
+		default:
+			return false
 	}
 	return true
-} catch (err) { logError(Error(`A command caused an error: ${message}`, err)) } }
+} catch (err) { logError(`A command caused an error: ${message}\n${err}`) } }
 
 
 /**
