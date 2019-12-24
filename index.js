@@ -67,7 +67,7 @@ client.on("ready", () => {
 client.on("message", message => {
 	if ((!inDoNotReply(message.author.id)) && ( // Not in the donotreply list
 			(channelIdIsAllowed(message.channel.id)) || // Is in either a channel Screambot is allowed in,
-			(message.channel.type == "dm"))) { // or a DM channel
+			(message.channel.type === "dm"))) { // or a DM channel
 	
 		// Pinged
 		if (message.isMentioned(client.user)) {
@@ -224,7 +224,7 @@ async function screamIn(channel) {
  * @return {Promise<Message|string>} Resolve: Message object that was sent; Reject: error message
  */
 async function sayIn(channel, string) {
-	if (channelIdIsAllowed(channel.id) || channel.type == "dm")
+	if (channelIdIsAllowed(channel.id) || channel.type === "dm")
 		return await channel.send(string)
 
 	throw `Screambot is not allowed to scream in [${channel.guild.name} - #${channel.name}].`
@@ -344,7 +344,7 @@ function command(message) { try {
  *   donotreply list
  */
 function inDoNotReply(userId) {
-	return Object.values(config.DO_NOT_REPLY).includes(userId) || userId == client.user.id
+	return Object.values(config.DO_NOT_REPLY).includes(userId) || userId === client.user.id
 }
 
 
@@ -436,7 +436,7 @@ function isScream(string) {
  *   a message
  */
 function locationString(message) {
-	return (message.channel.type == "dm")
+	return (message.channel.type === "dm")
 		? `[Direct message]`
 		: `[${message.guild.name} - #${message.channel.name}]`
 }
