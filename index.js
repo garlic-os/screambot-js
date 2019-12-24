@@ -5,7 +5,7 @@
 const config = {}
 for (const key in process.env) {
 	try {
-		config[key] = JSON.parse(process.env[key].replace(`"`, `'`))
+		config[key] = JSON.parse(process.env[key])
 	} catch (e) {
 		config[key] = process.env[key]
 	}
@@ -72,7 +72,7 @@ client.on("message", message => {
 		// Pinged
 		if (message.isMentioned(client.user)) {
 			if (!command(message)) {
-				console.log(`${locationString(message)} Screambot has been pinged by ${message.author.username}.`)
+				console.log(`${locationString(message)} Pinged by ${message.author.username}.`)
 
 				screamIn(message.channel)
 					.then(message => console.log(`Responded with ${message.content.length} A's.\n`))
@@ -88,7 +88,7 @@ client.on("message", message => {
 
 		// Always scream at DMs
 		else if (message.channel.type === "dm") {
-			console.log(`[Direct message] ${message.author.username} sent Screambot a DM.`)
+			console.log(`[Direct message] Received a DM from ${message.author.username}.`)
 			screamIn(message.channel)
 				.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
 		}
@@ -96,7 +96,7 @@ client.on("message", message => {
 		// If the message is nothing special, maybe scream anyway
 		else {
 			if (randomReplyChance()) {
-				console.log(`${locationString(message)} Screambot has randomly decided to reply to ${message.author.username}'s message.`)
+				console.log(`${locationString(message)} Randomly decided to reply to ${message.author.username}'s message.`)
 				screamIn(message.channel)
 					.then(message => console.log(`Replied with a ${message.content.length}-character long scream.`))
 			}
@@ -110,11 +110,11 @@ client.on("message", message => {
  * Triggers when Screambot joins a server
  */
 client.on("guildCreate", guild => {
-	const msg = `---------------------------------
-Screambot has been added to a new server.
+	const msg = `-------------------------------
+Added to a new server.
 ${guild.name} (ID: ${guild.id})
 ${guild.memberCount} members
----------------------------------`
+-------------------------------`
 	dmTheDevs(msg)
 	console.info(msg)
 })
@@ -125,10 +125,10 @@ ${guild.memberCount} members
  * Triggers when Screambot is removed from a server
  */
 client.on("guildDelete", guild => {
-	const msg = `---------------------------------
-Screambot has been removed from a server.
+	const msg = `-------------------------------
+Removed from a server.
 ${guild.name} (ID: ${guild.id})
----------------------------------`
+-------------------------------`
 	dmTheDevs(msg)
 	console.info(msg)
 })
@@ -227,7 +227,7 @@ async function sayIn(channel, string) {
 	if (channelIdIsAllowed(channel.id) || channel.type === "dm")
 		return await channel.send(string)
 
-	throw `Screambot is not allowed to scream in [${channel.guild.name} - #${channel.name}].`
+	throw `Not allowed to scream in [${channel.guild.name} - #${channel.name}].`
 }
 
 
@@ -275,7 +275,7 @@ function isDev(userId) {
 function command(message) { try {
 	if (!message.content.includes(" ")) return false
 	
-	console.log(`${locationString(message)} Screambot has received a command from ${message.author.username}.`)
+	console.log(`${locationString(message)} Received a command from ${message.author.username}.`)
 
 	// Rank check
 	const authorId = message.author.id
@@ -392,11 +392,11 @@ async function dmTheDevs(string) {
 				.catch(console.error)
 		}
 	} else {
-		console.error(`---------------------------------
-           Screambot tried to DM the devs
-           before the dev list has been
-           initialized. This is not good.
-           ---------------------------------`)
+		console.error(`-------------------------------
+           Tried to DM the devs before the
+		   dev list has been initialized. 
+		   This is not good.
+           -------------------------------`)
 	}
 }
 
@@ -513,4 +513,15 @@ function isEmpty(obj) {
     		return false
 		}
 	return true
+}
+
+
+/**
+ * Get status name from status code
+ * 
+ * @param {number} code - status code
+ * @return {string} status name
+ */
+function status(code) {
+	return ["Playing", "Streaming", "Listening", "Watching"][code]
 }
