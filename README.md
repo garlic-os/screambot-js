@@ -15,7 +15,7 @@ Screambot still very much a work in progress, but it _does_ work. I am working t
 4. `node index.js`
 
 ### Run it on a PaaS
-1. If you haven't already, set up an account with a service that lets you run code on one of their servers. I recommend Heroku or EC2.
+1. If you haven't already, set up an account with a service that lets you run code on one of their servers. I recommend Heroku ~~or EC2~~. Avoid EC2 and EB like the plague.
 2. Make a project and link it to this GitHub page (or download it and upload the source manually)
 3. Set the environment variables
 4. Use **worker** type. **Do not** use web type. 
@@ -36,7 +36,7 @@ Screambot still very much a work in progress, but it _does_ work. I am working t
 - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
 - Put the functions in a sensible order
 - Ranks: go by server role IDs, when possible, instead of user IDs
-- Make things more asynchronous
+- ~~Make things more asynchronous~~ all a-sunk!
 - Add scream variations (maybe?)
 - Make a "help" command
 - Make the code for responding to pings not garbage
