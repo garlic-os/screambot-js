@@ -2,7 +2,7 @@
 
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
-const config = {}
+const config = require("./defaults")
 for (const key in process.env) {
 	try {
 		config[key] = JSON.parse(process.env[key])
@@ -39,7 +39,8 @@ const log = {
 }
 
 const Discord = require("discord.js")
-const client = new Discord.Client()
+    , embeds = require("./embeds")
+    , client = new Discord.Client()
 
 /**
  * On Ready
@@ -74,7 +75,7 @@ client.on("ready", () => {
  */
 client.on("message", message => {
 	if (!inDoNotReply(message.author.id) && ( // Not in the Do-Not-Reply list
-			channelIDIsAllowed(message.channel.id) || // Is in either a channel Screambot is allowed in,
+			canScreamIn(message.channel.id) || // Is in either a channel Screambot is allowed in,
 			message.channel.type === "dm")) { // or a DM channel
 	
 		// Pinged
@@ -175,7 +176,6 @@ client.login(config.DISCORD_BOT_TOKEN)
 /**
  * Sets the custom nicknames from the config file
  * 
- * @async
  * @return {Promise<void|Error[]>} Resolve: nothing (there were no errors); Reject: array of errors
  */
 async function updateNicknames(nicknameDict) {
@@ -252,7 +252,7 @@ function screamIn(channel) {
  * @return {Promise<Message>} Message object that was sent
  */
 function sayIn(channel, string) {
-	if (channelIDIsAllowed(channel.id) || channel.type === "dm")
+	if (canScreamIn(channel.id) || channel.type === "dm")
 		return channel.send(string)
 
 	throw `Not allowed to scream in [${channel.guild.name} - #${channel.name}].`
@@ -272,6 +272,11 @@ function has(val, obj) {
 			return true
 	}
 	return false
+}
+
+
+function canScreamIn(channelID) {
+	return has(channelID, config.CHANNELS)
 }
 
 
@@ -343,6 +348,42 @@ function command(message) { try {
 					.then(log.error)
 			break
 
+		case "servers":
+			const servers_embed = new Discord.RichEmbed()
+				.setTitle("Member of these servers:")
+
+			client.guilds.tap(server => {
+				servers_embed.addField(server.name, server.id, true)
+			})
+
+			sayIn(message.channel, servers_embed)
+				.then(console.log(`${locationString(message)} Listed servers.`))
+			break
+
+		case "channels":
+			if (!args[0]) {
+				sayIn(message.channel, embeds.error("AAAAAAAAAAAAAAAAA\nMISSING SERVER ID\nSyntax: @screambot channels [server ID]"))
+					.then(log.error)
+				break
+			}
+
+			const channels_guild = client.guilds.get(args[0])
+			if (!channels_guild) {
+				sayIn(message.channel, embeds.error("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA INVALID SERVER ID"))
+					.then(log.error)
+			}
+			const channels_embed = new Discord.RichEmbed()
+				.setTitle(`Able to scream in these channels in ${channels_guild.name} (ID: ${channels_guild.id}):`)
+
+			channels_guild.channels.tap(channel => {
+				if (canScreamIn(channel.id))
+					channels_embed.addField(`#${channel.name}`, channel.id, true)
+			})
+
+			sayIn(message.channel, channels_embed)
+				.then(console.log(`${locationString(message)} Listed channels for ${channels_guild.name} (ID: ${channels_guild.id}).`))
+			break
+
 		default:
 			return false
 	}
@@ -366,9 +407,8 @@ function logError(errObj) {
 
 
 /**
- * It DM's someone.
+ * DM someone.
  * 
- * @async
  * @param {User} user - User to DM
  * @param {string} string - message to send
  * @return {Promise<{user, string}>} object containing the input arguments
@@ -383,7 +423,6 @@ async function dm(user, string) {
 /**
  * Send a DM to everyone in the dev list.
  * 
- * @async
  * @param {string} string - message to send
  * @return {Promise<void>}
  */
@@ -401,20 +440,6 @@ async function dmTheDevs(string) {
 		   This is not good.
            -------------------------------`)
 	}
-}
-
-
-/**
- * Channel ID is Allowed
- * Returns whether a channel ID is in
- *   the list of channels in config
- */
-function channelIDIsAllowed(channelID) {
-	for (const i in config.CHANNELS) {
-		if (config.CHANNELS[i] === channelID)
-			return true
-	}
-	return false
 }
 
 
@@ -449,7 +474,6 @@ function locationString(message) {
  * Generates an object containing stats about
  *   all the channels in the given dictionary.
  * 
- * @async
  * @param {Object} channelDict - Dictionary of channels
  * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object
  * 
@@ -481,7 +505,6 @@ async function channelTable(channelDict) {
  * Generates an object containing stats about
  *   all the nicknames Bipolar has.
  * 
- * @async
  * @param {Object} nicknameDict - Dictionary of nicknames
  * @return {Promise<Object>} Object intended to be console.table'd
  * 
