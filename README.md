@@ -7,16 +7,16 @@ Screams when:
 - Someone says something (sometimes)
 
 ## Run it yourself
-Screambot still very much a work in progress, but it _does_ work. I am working toward getting it to a state where you can just invite it to your server without worrying about hosting it yourself, but if for some reason you want to use it now, here's a guide:
+Screambot is not (as) finished (as I'd like him to be), but he _does_ work. I am working toward getting him to a state where you can just invite him to your server without worrying about hosting him yourself, but if for some reason you want to use him now, here's a guide:
 ### Run it on your own machine
-1. Download it
+1. Download this repo
 2. Open a command line (maybe do the following as part of a batch file)
 3. Set the environment variables listed below
 4. `node index.js`
 
 ### Run it on a PaaS
-1. If you haven't already, set up an account with a service that lets you run code on one of their servers. I recommend Heroku ~~or EC2~~. Avoid EC2 and EB like the plague.
-2. Make a project and link it to this GitHub page (or download it and upload the source manually)
+1. If you haven't already, set up an account with a service that lets you run code on one of their servers. I recommend [Heroku](https://www.heroku.com/home) ~~or EC2~~. Avoid EC2 and EB like the plague.
+2. Make an app and link it to this repo (or download it and upload the source manually)
 3. Set the environment variables
 4. Use **worker** type. **Do not** use web type. 
 
@@ -31,6 +31,7 @@ Screambot still very much a work in progress, but it _does_ work. I am working t
 | `DEVS` | A JSON-encoded dictionary of the users that are allowed to use Screambot's dev commands. | `{"You, probably":"<USER ID HERE>"}` |
 | `DO_NOT_REPLY` | A JSON-encoded dictionary of the users that Screambot won't reply to. | `{"Naughty boy":"<USER ID HERE>"}` |
 | `RANDOM_REPLY_CHANCE` | Percent chance that Screambot will scream in response to a regular message | `0.5` |
+| `EMBED_COLORS` | A JSON-encoded dictionary of colors for `normal` and `error`. | `{ "normal": "#A755B5", "error": "#FF3636" }` | `{ "normal": "#A755B5", "error": "#FF3636" }` |
 
 ## TODO
 - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
