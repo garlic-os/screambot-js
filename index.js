@@ -34,7 +34,7 @@ if (config.DISABLE_LOGS) {
 const log = {
 	  say:    message => console.log(`${locationString(message)} Sent the message, "${message.content}".`)
 	, scream: message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`)
-	, screamReply: message => console.log(`Replied with a ${message.content.length} A's\n.`)
+	, screamReply: message => console.log(`Replied with a ${message.content.length} A's.\n`)
 	, error:  message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`)
 }
 
@@ -49,6 +49,7 @@ const client = new Discord.Client()
 client.on("ready", () => {
 	console.info(`Logged in as ${client.user.tag}.\n`)
 	updateNicknames()
+
 	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`))
 
@@ -72,9 +73,9 @@ client.on("ready", () => {
  *   that Screambot is in
  */
 client.on("message", message => {
-	if ((!inDoNotReply(message.author.id)) && ( // Not in the donotreply list
-			(channelIdIsAllowed(message.channel.id)) || // Is in either a channel Screambot is allowed in,
-			(message.channel.type === "dm"))) { // or a DM channel
+	if (!inDoNotReply(message.author.id) && ( // Not in the Do-Not-Reply list
+			channelIDIsAllowed(message.channel.id) || // Is in either a channel Screambot is allowed in,
+			message.channel.type === "dm")) { // or a DM channel
 	
 		// Pinged
 		if (message.isMentioned(client.user)) {
@@ -117,13 +118,35 @@ client.on("message", message => {
  * Triggers when Screambot joins a server
  */
 client.on("guildCreate", guild => {
-	const msg = `-------------------------------
+	const embed = new Discord.RichEmbed()
+		.setAuthor("Added to a server.")
+		.setTitle(guild.name)
+		.setDescription(guild.id)
+		.setThumbnail(guild.iconURL)
+		.addField(`Owner: ${guild.owner.user.tag}`, `${guild.ownerID}\n\n${guild.memberCount} members`)
+		.addBlankField()
+
+	let logmsg = `-------------------------------
 Added to a new server.
 ${guild.name} (ID: ${guild.id})
 ${guild.memberCount} members
--------------------------------`
-	dmTheDevs(msg)
-	console.info(msg)
+Channels:`
+
+	/**
+	 * Add an inline field to the embed and a
+	 *   line to the log message
+	 *   for every text channel in the guild.
+	 */
+	guild.channels.tap(channel => {
+		if (channel.type === "text") {
+			embed.addField(`#${channel.name}`, channel.id, true)
+			logmsg += `\n#${channel.name} (ID: ${channel.id})`
+		}
+	})
+
+	logmsg += "\n-------------------------------"
+	dmTheDevs(embed)
+	console.info(logmsg)
 })
 
 
@@ -153,16 +176,16 @@ client.login(config.DISCORD_BOT_TOKEN)
  * Sets the custom nicknames from the config file
  * 
  * @async
- * @return {Promise<void>} Resolve: nothing (there were no errors); Reject: array of errors
+ * @return {Promise<void|Error[]>} Resolve: nothing (there were no errors); Reject: array of errors
  */
 async function updateNicknames(nicknameDict) {
 	const errors = []
 
 	for (const serverName in nicknameDict) {
-		const [ serverId, nickname ] = nicknameDict[serverName]
-		const server = client.guilds.get(serverId)
+		const [ serverID, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverID)
 		if (!server) {
-			console.warn(`Nickname configured for a server that Screambot is not in. Nickname could not be set in ${serverName} (${serverId}).`)
+			console.warn(`Nickname configured for a server that Screambot is not in. Nickname could not be set in ${serverName} (${serverID}).`)
 			continue
 		}
 		server.me.setNickname(nickname)
@@ -212,12 +235,11 @@ function randomReplyChance() {
  * Generates a scream with generateScream()
  *   and sends it to the given channel with sayIn()
  * 
- * @async
  * @param {Channel} channel - channel to scream in
- * @return {Promise<Message|Error>} Resolve: message sent; Reject: error message
+ * @return {Promise<Message>} Message object that was sent
  */
-async function screamIn(channel) {
-	return await sayIn(channel, generateScream())
+function screamIn(channel) {
+	return sayIn(channel, generateScream())
 }
 
 
@@ -225,14 +247,13 @@ async function screamIn(channel) {
  * Send a message to a channel.
  * Rejects if the channel is not whitelisted.
  * 
- * @async
  * @param {Channel} channel - channel to send the message to
  * @param {string} string - message to send
- * @return {Promise<Message|string>} Resolve: Message object that was sent; Reject: error message
+ * @return {Promise<Message>} Message object that was sent
  */
-async function sayIn(channel, string) {
-	if (channelIdIsAllowed(channel.id) || channel.type === "dm")
-		return await channel.send(string)
+function sayIn(channel, string) {
+	if (channelIDIsAllowed(channel.id) || channel.type === "dm")
+		return channel.send(string)
 
 	throw `Not allowed to scream in [${channel.guild.name} - #${channel.name}].`
 }
@@ -243,7 +264,7 @@ async function sayIn(channel, string) {
  * 
  * @param {any} val
  * @param {Object} object
- * @return {Boolean} True/false
+ * @return {boolean} True/false
  */
 function has(val, obj) {
 	for (const i in obj) {
@@ -254,13 +275,18 @@ function has(val, obj) {
 }
 
 
-function isAdmin(userId) {
-	return has(userId, config.ADMINS)
+function isAdmin(userID) {
+	return has(userID, config.ADMINS)
 }
 
 
-function isDev(userId) {
-	return has(userId, config.DEVS)
+function isDev(userID) {
+	return has(userID, config.DEVS)
+}
+
+
+function inDoNotReply(userID) {
+	return has(userID, config.DO_NOT_REPLY) || userID === client.user.id
 }
 
 
@@ -280,9 +306,9 @@ function isDev(userId) {
  * "@Screambot [command] [args space delimited]"
  */
 function command(message) { try {
-	const authorId = message.author.id
+	const authorID = message.author.id
 	if (!(message.content.includes(" ") // Message has to have a space (more than one word)
-	&& (isAdmin(authorId) || isDev(authorId)))) // and come from an admin or dev
+	&& (isAdmin(authorID) || isDev(authorID)))) // and come from an admin or dev
 		return false
 	
 	console.log(`${locationString(message)} Received a command from ${message.author.username}.`)
@@ -299,9 +325,9 @@ function command(message) { try {
 			break
 
 		case "sayin":
-			const channelId = args.shift() // Subtract first entry so it doesn't get in the way later
-			if (client.channels.has(channelId))
-				sayIn(client.channels.get(channelId), args.join(" "))
+			const channelID = args.shift() // Subtract first entry so it doesn't get in the way later
+			if (client.channels.has(channelID))
+				sayIn(client.channels.get(channelID), args.join(" "))
 					.then(log.say)
 			else
 				sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SPEAK THERE AAAAAAAAAAAAAA")
@@ -324,15 +350,6 @@ function command(message) { try {
 } catch (err) { logError(`A command caused an error: ${message}\n${err}`) } }
 
 
-/**
- * In Do Not Reply
- * Returns whether or not a User ID is in the
- *   donotreply list
- */
-function inDoNotReply(userId) {
-	return Object.values(config.DO_NOT_REPLY).includes(userId) || userId === client.user.id
-}
-
 
 /**
  * DM the dev(s) and console.error a message.
@@ -354,7 +371,7 @@ function logError(errObj) {
  * @async
  * @param {User} user - User to DM
  * @param {string} string - message to send
- * @return {Promise<Object|Error>} Resolve: object containing the input arguments; Reject: error message
+ * @return {Promise<{user, string}>} object containing the input arguments
  */
 async function dm(user, string) {
 	if (!user) throw `User does not exist.`
@@ -368,7 +385,7 @@ async function dm(user, string) {
  * 
  * @async
  * @param {string} string - message to send
- * @return {Promise<undefined|Error>} Resolve: nothing; Reject: error
+ * @return {Promise<void>}
  */
 async function dmTheDevs(string) {
 	if (config.DEVS) {
@@ -392,9 +409,9 @@ async function dmTheDevs(string) {
  * Returns whether a channel ID is in
  *   the list of channels in config
  */
-function channelIdIsAllowed(channelId) {
+function channelIDIsAllowed(channelID) {
 	for (const i in config.CHANNELS) {
-		if (config.CHANNELS[i] === channelId)
+		if (config.CHANNELS[i] === channelID)
 			return true
 	}
 	return false
@@ -449,12 +466,12 @@ async function channelTable(channelDict) {
 
 	const stats = {}
 	for (const i in channelDict) {
-		const channelId = channelDict[i]
-		const channel = client.channels.get(channelId)
+		const channelID = channelDict[i]
+		const channel = client.channels.get(channelID)
 		const stat = {}
 		stat["Server"] = channel.guild.name
 		stat["Name"] = "#" + channel.name
-		stats[channelId] = stat
+		stats[channelID] = stat
 	}
 	return stats
 }
@@ -466,7 +483,7 @@ async function channelTable(channelDict) {
  * 
  * @async
  * @param {Object} nicknameDict - Dictionary of nicknames
- * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object"
+ * @return {Promise<Object>} Object intended to be console.table'd
  * 
  * @example
  *     nicknameTable(config.NICKNAMES)
@@ -481,13 +498,13 @@ async function nicknameTable(nicknameDict) {
 
 	const stats = {}
 	for (const serverName in nicknameDict) {
-		const [ serverId, nickname ] = nicknameDict[serverName]
-		const server = client.guilds.get(serverId)
+		const [ serverID, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverID)
 		const stat = {}
 		stat["Server"] = server.name
 		stat["Intended"] = nickname
 		stat["De facto"] = server.me.nickname
-		stats[serverId] = stat
+		stats[serverID] = stat
 	}
 	return stats
 }
