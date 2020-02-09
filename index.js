@@ -373,15 +373,39 @@ function command(message) { try {
 					.then(log.error)
 			}
 			const channels_embed = new Discord.RichEmbed()
-				.setTitle(`Able to scream in these channels in ${channels_guild.name} (ID: ${channels_guild.id}):`)
+				.setTitle(`Channels in ${channels_guild.name} (ID: ${channels_guild.id}):`)
 
 			channels_guild.channels.tap(channel => {
-				if (canScreamIn(channel.id))
+				if (channel.type === "text")
 					channels_embed.addField(`#${channel.name}`, channel.id, true)
 			})
 
 			sayIn(message.channel, channels_embed)
 				.then(console.log(`${locationString(message)} Listed channels for ${channels_guild.name} (ID: ${channels_guild.id}).`))
+			break
+
+		case "screaming":
+			if (!args[0]) {
+				sayIn(message.channel, embeds.error("AAAAAAAAAAAAAAAAA\nMISSING SERVER ID\nSyntax: @screambot channels [server ID]"))
+					.then(log.error)
+				break
+			}
+
+			const screaming_guild = client.guilds.get(args[0])
+			if (!screaming_guild) {
+				sayIn(message.channel, embeds.error("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA INVALID SERVER ID"))
+					.then(log.error)
+			}
+			const screaming_embed = new Discord.RichEmbed()
+				.setTitle(`Able to scream in these channels in ${screaming_guild.name} (ID: ${screaming_guild.id}):`)
+
+			screaming_guild.channels.tap(channel => {
+				if (canScreamIn(channel.id))
+					screaming_embed.addField(`#${channel.name}`, channel.id, true)
+			})
+
+			sayIn(message.channel, screaming_embed)
+				.then(console.log(`${locationString(message)} Listed channels that Screambot can scream in for ${screaming_guild.name} (ID: ${screaming_guild.id}).`))
 			break
 
 		default:
