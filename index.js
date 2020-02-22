@@ -36,19 +36,32 @@ const log = {
 	, scream: message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`)
 	, screamReply: message => console.log(`Replied with a ${message.content.length} A's.\n`)
 	, error:  message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`)
+	, rateLimited: () => console.log("Wanted to scream, but was rate limited.")
 }
 
 const Discord = require("discord.js")
     , embeds = require("./embeds")
     , client = new Discord.Client()
 
+
 /**
- * On Ready
- * Triggers when Screambot successfully
- *   logs into Discord
+ * Rate limiting. While true, Screambot will drop all requests to scream.
+ * Screaming once will make rateLimiting true for half a second,
+ *   effectively making it so that Screambot can only scream
+ *   twice per second.
+ * @type {Boolean}
  */
+let rateLimiting = false
+
+
 client.on("ready", () => {
 	console.info(`Logged in as ${client.user.tag}.\n`)
+
+	// Unlock rate limit every half second
+	setInterval( () => {
+		rateLimiting = false
+	}, 500) // Half a second
+
 	updateNicknames()
 
 	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
@@ -68,11 +81,6 @@ client.on("ready", () => {
 })
 
 
-/**
- * On Message
- * Triggers when a message is posted in _any_ server
- *   that Screambot is in
- */
 client.on("message", message => {
 	if (!inDoNotReply(message.author.id) && ( // Not in the Do-Not-Reply list
 			canScreamIn(message.channel.id) || // Is in either a channel Screambot is allowed in,
@@ -81,33 +89,37 @@ client.on("message", message => {
 		// Pinged
 		if (message.isMentioned(client.user)) {
 			if (!command(message)) {
-				console.log(`${locationString(message)} Pinged by ${message.author.username}.`)
+				console.log(`${locationString(message)} Pinged by ${message.author.tag}.`)
 
 				screamIn(message.channel)
 					.then(log.screamReply)
+					.catch(log.rateLimited)
 			}
 		}
 
 		// Someone screams
 		else if (isScream(message.content)) {
-			console.log(`${locationString(message)} ${message.author.username} has screamed.`)
+			console.log(`${locationString(message)} ${message.author.tag} has screamed.`)
 			screamIn(message.channel)
 				.then(log.screamReply)
+				.catch(log.rateLimited)
 		}
 
 		// Always scream at DMs
 		else if (message.channel.type === "dm") {
-			console.log(`[Direct message] Received a DM from ${message.author.username}.`)
+			console.log(`[Direct message] Received a DM from ${message.author.tag}.`)
 			screamIn(message.channel)
 				.then(log.screamReply)
+				.catch(log.rateLimited)
 		}
 		
 		// If the message is nothing special, maybe scream anyway
 		else {
 			if (randomReplyChance()) {
-				console.log(`${locationString(message)} Randomly decided to reply to ${message.author.username}'s message.`)
+				console.log(`${locationString(message)} Randomly decided to reply to ${message.author.tag}'s message.`)
 				screamIn(message.channel)
 					.then(log.screamReply)
+					.catch(log.rateLimited)
 			}
 		}
 	}
@@ -174,7 +186,7 @@ client.login(config.DISCORD_BOT_TOKEN)
 
 
 /**
- * Sets the custom nicknames from the config file
+ * Sets the custom nicknames from config
  * 
  * @return {Promise<void|Error[]>} Resolve: nothing (there were no errors); Reject: array of errors
  */
@@ -238,8 +250,10 @@ function randomReplyChance() {
  * @param {Channel} channel - channel to scream in
  * @return {Promise<Message>} Message object that was sent
  */
-function screamIn(channel) {
-	return sayIn(channel, generateScream())
+async function screamIn(channel) {
+	if (rateLimiting) throw "Rate limited"
+	rateLimiting = true
+	return await sayIn(channel, generateScream())
 }
 
 
@@ -251,9 +265,9 @@ function screamIn(channel) {
  * @param {string} string - message to send
  * @return {Promise<Message>} Message object that was sent
  */
-function sayIn(channel, string) {
+async function sayIn(channel, string) {
 	if (canScreamIn(channel.id) || channel.type === "dm")
-		return channel.send(string)
+		return await channel.send(string)
 
 	throw `Not allowed to scream in [${channel.guild.name} - #${channel.name}].`
 }
@@ -316,7 +330,7 @@ function command(message) { try {
 	&& (isAdmin(authorID) || isDev(authorID)))) // and come from an admin or dev
 		return false
 	
-	console.log(`${locationString(message)} Received a command from ${message.author.username}.`)
+	console.log(`${locationString(message)} Received a command from ${message.author.tag}.`)
 
 	const args = message.content.split(" ")
 	args.shift() // Remove "@Screambot"
@@ -343,6 +357,7 @@ function command(message) { try {
 			if (client.channels.has(args[0]))
 				screamIn(client.channels.get(args[0]))
 					.then(log.scream)
+					.catch(log.rateLimited)
 			else
 				sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SCREAM THERE AAAAAAAAAAAAAA")
 					.then(log.error)
@@ -350,7 +365,7 @@ function command(message) { try {
 
 		case "servers":
 			const servers_embed = new Discord.RichEmbed()
-				.setTitle("Member of these servers:")
+				.setTitle("Member of these servers")
 
 			client.guilds.tap(server => {
 				servers_embed.addField(server.name, server.id, true)
@@ -373,7 +388,7 @@ function command(message) { try {
 					.then(log.error)
 			}
 			const channels_embed = new Discord.RichEmbed()
-				.setTitle(`Channels in ${channels_guild.name} (ID: ${channels_guild.id}):`)
+				.setTitle(`Channels in ${channels_guild.name} (ID: ${channels_guild.id})`)
 
 			channels_guild.channels.tap(channel => {
 				if (channel.type === "text")
@@ -397,7 +412,7 @@ function command(message) { try {
 					.then(log.error)
 			}
 			const screaming_embed = new Discord.RichEmbed()
-				.setTitle(`Able to scream in these channels in ${screaming_guild.name} (ID: ${screaming_guild.id}):`)
+				.setTitle(`Able to scream in these channels in ${screaming_guild.name} (ID: ${screaming_guild.id})`)
 
 			screaming_guild.channels.tap(channel => {
 				if (canScreamIn(channel.id))
