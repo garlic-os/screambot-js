@@ -343,6 +343,7 @@ function command(message) { try {
 				.then(log.say)
 			break
 
+
 		case "sayin":
 			const channelID = args.shift() // Subtract first entry so it doesn't get in the way later
 			if (client.channels.has(channelID))
@@ -352,6 +353,7 @@ function command(message) { try {
 				sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SPEAK THERE AAAAAAAAAAAAAA")
 					.then(log.error)
 			break
+
 
 		case "screamin":
 			if (client.channels.has(args[0]))
@@ -363,6 +365,7 @@ function command(message) { try {
 					.then(log.error)
 			break
 
+
 		case "servers":
 			const servers_embed = new Discord.RichEmbed()
 				.setTitle("Member of these servers")
@@ -371,20 +374,21 @@ function command(message) { try {
 				servers_embed.addField(server.name, server.id, true)
 			})
 
-			sayIn(message.channel, servers_embed)
+			message.author.send(servers_embed)
 				.then(console.log(`${locationString(message)} Listed servers.`))
 			break
 
+
 		case "channels":
 			if (!args[0]) {
-				sayIn(message.channel, embeds.error("AAAAAAAAAAAAAAAAA\nMISSING SERVER ID\nSyntax: @screambot channels [server ID]"))
+				message.author.send(embeds.error("AAAAAAAAAAAAAAAAA\nMISSING SERVER ID\nSyntax: @screambot channels [server ID]"))
 					.then(log.error)
 				break
 			}
 
 			const channels_guild = client.guilds.get(args[0])
 			if (!channels_guild) {
-				sayIn(message.channel, embeds.error("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA INVALID SERVER ID"))
+				message.author.send(embeds.error("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA INVALID SERVER ID"))
 					.then(log.error)
 			}
 			const channels_embed = new Discord.RichEmbed()
@@ -395,20 +399,21 @@ function command(message) { try {
 					channels_embed.addField(`#${channel.name}`, channel.id, true)
 			})
 
-			sayIn(message.channel, channels_embed)
+			message.author.send(servers_embed)
 				.then(console.log(`${locationString(message)} Listed channels for ${channels_guild.name} (ID: ${channels_guild.id}).`))
 			break
 
+
 		case "screaming":
 			if (!args[0]) {
-				sayIn(message.channel, embeds.error("AAAAAAAAAAAAAAAAA\nMISSING SERVER ID\nSyntax: @screambot channels [server ID]"))
+				message.author.send(embeds.error("AAAAAAAAAAAAAAAAA\nMISSING SERVER ID\nSyntax: @screambot channels [server ID]"))
 					.then(log.error)
 				break
 			}
 
 			const screaming_guild = client.guilds.get(args[0])
 			if (!screaming_guild) {
-				sayIn(message.channel, embeds.error("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA INVALID SERVER ID"))
+				message.author.send(embeds.error("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA INVALID SERVER ID"))
 					.then(log.error)
 			}
 			const screaming_embed = new Discord.RichEmbed()
@@ -419,9 +424,10 @@ function command(message) { try {
 					screaming_embed.addField(`#${channel.name}`, channel.id, true)
 			})
 
-			sayIn(message.channel, screaming_embed)
+			message.author.send(servers_embed)
 				.then(console.log(`${locationString(message)} Listed channels that Screambot can scream in for ${screaming_guild.name} (ID: ${screaming_guild.id}).`))
 			break
+
 
 		default:
 			return false
