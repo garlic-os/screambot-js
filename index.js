@@ -1,3 +1,5 @@
+require("dotenv").config()
+
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
 const config = require("./defaults")
