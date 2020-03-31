@@ -25,11 +25,7 @@ if (config.DISABLE_LOGS) {
         console[method] = () => {}
     }
 } else {
-	require("console-stamp")(console, {
-		datePrefix: "",
-		dateSuffix: "",
-		pattern: " "
-	})
+	require("console-stamp")(console)
 }
 
 const log = {
