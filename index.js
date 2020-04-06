@@ -43,9 +43,6 @@ const Discord = require("discord.js")
 
 /**
  * Rate limiting. While true, Screambot will drop all requests to scream.
- * Screaming once will make rateLimiting true for half a second,
- *   effectively making it so that Screambot can only scream
- *   twice per second.
  * @type {Boolean}
  */
 let rateLimiting = false
@@ -54,12 +51,12 @@ let rateLimiting = false
 client.on("ready", () => {
 	console.info(`Logged in as ${client.user.tag}.\n`)
 
-	// Unlock rate limit every half second
+	// Unlock rate limit every interval
 	setInterval( () => {
 		rateLimiting = false
-	}, 500) // Half a second
+	}, config.RATE_LIMIT_MS)
 
-	updateNicknames()
+	updateNicknames(config.NICKNAMES)
 
 	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`))
