@@ -12,7 +12,7 @@ Screambot is not (as) finished (as I'd like him to be), but he _does_ work. I am
 1. Download this repo
 2. Open a command line (maybe do the following as part of a batch file)
 3. Set the environment variables listed below
-4. `node index.js`
+4. `$ npm start`
 
 ### Run it on a PaaS
 1. If you haven't already, set up an account with a service that lets you run code on one of their servers. I recommend [Heroku](https://www.heroku.com/home) ~~or EC2~~. Avoid EC2 and EB like the plague.
