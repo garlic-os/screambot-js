@@ -32,6 +32,7 @@ Screambot is not (as) finished (as I'd like him to be), but he _does_ work. I am
 | `DO_NOT_REPLY` | A JSON-encoded dictionary of the users that Screambot won't reply to. | `{"Naughty boy":"<USER ID HERE>"}` |
 | `RANDOM_REPLY_CHANCE` | Percent chance that Screambot will scream in response to a regular message | `0.5` |
 | `EMBED_COLORS` | A JSON-encoded dictionary of colors for `normal` and `error`. | `{ "normal": "#A755B5", "error": "#FF3636" }` | `{ "normal": "#A755B5", "error": "#FF3636" }` |
+| `RATE_LIMIT_MS` | Timeout between scream requests. | `2000` |
 
 ## TODO
 - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
