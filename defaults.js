@@ -11,5 +11,6 @@ module.exports = {
 	ADMINS: {},
 	DEVS: {},
 	DO_NOT_REPLY: {},
-	DISABLE_LOGGING: false
+	DISABLE_LOGGING: false,
+	RATE_LIMIT_MS: 2000
 }
