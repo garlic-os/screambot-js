@@ -107,6 +107,12 @@ client.on("message", message => {
 				.catch(log.rateLimited)
 		}
 		
+		else if (message.content.toLowerCase() === "ayy") {
+			sayIn(message.channel, "lmao")
+				.then(log.screamReply)
+				.catch(log.rateLimited)
+		}
+		
 		// If the message is nothing special, maybe scream anyway
 		else {
 			if (randomReplyChance()) {
