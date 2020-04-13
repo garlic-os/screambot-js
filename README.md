@@ -38,12 +38,11 @@ Screambot is not (as) finished (as I'd like him to be), but he _does_ work. I am
 - Scream in VC: https://github.com/discordjs/discord.js/blob/master/docs/topics/voice.md
 - Put the functions in a sensible order
 - Ranks: go by server role IDs, when possible, instead of user IDs
-- ~~Make things more asynchronous~~ all a-sunk!
-- Add scream variations (maybe?)
+- ~~Add scream variations (maybe?)~~ Scream variations added!
 - Make a "help" command
 - Make the code for responding to pings not garbage
 - Schedule different messages for certain dates
-- Change scream on the fly, per server
+- ~~Change scream on the fly, per server~~ nah
 
 
 ## Thanks
