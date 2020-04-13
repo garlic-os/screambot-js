@@ -99,16 +99,17 @@ client.on("message", message => {
 				.catch(log.rateLimited)
 		}
 
+		// ayy lmao
+		else if (message.content.toLowerCase() === "ayy") {
+			sayIn(message.channel, "lmao")
+				.then(log.screamReply)
+				.catch(log.rateLimited)
+		}
+
 		// Always scream at DMs
 		else if (message.channel.type === "dm") {
 			console.log(`[Direct message] Received a DM from ${message.author.tag}.`)
 			screamIn(message.channel)
-				.then(log.screamReply)
-				.catch(log.rateLimited)
-		}
-		
-		else if (message.content.toLowerCase() === "ayy") {
-			sayIn(message.channel, "lmao")
 				.then(log.screamReply)
 				.catch(log.rateLimited)
 		}
