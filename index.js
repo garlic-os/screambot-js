@@ -212,23 +212,59 @@ async function updateNicknames(nicknameDict) {
 
 
 /**
- * Generates a 1-100 character string of capital A's.
+ * Generate a scream with random variations.
  * 
  * @return {string} scream
  */
 function generateScream() {
-	const min = 1
-	const max = 100
-
-	let a = Math.floor(Math.random() * (max-min)) + min
-	let scream = ""
-
-	while (a > 0) {
-		scream += "A"
-		a--
+	/**
+	 * Random outcome with a <percent>% chance of being True.
+	 * 
+	 * @param {number} percent
+	 * @return {Boolean}
+	 */
+	function chance(percent) {
+		return Math.random() < percent / 100
 	}
 
-	return scream
+	/**
+	 * Pick a random element from an array.
+	 * 
+	 * @param {any[]} choices
+	 * @return {any} random element from choices
+	 */
+	function choose(choices) {
+		const index = Math.floor(Math.random() * choices.length);
+		return choices[index];
+	}
+
+
+	const min = 1
+	const max = 100
+	const bodyLength = Math.floor(Math.random() * (max-min)) + min
+
+
+	// Vanilla scream half the time
+	if (chance(50)) {
+		return "A".repeat(bodyLength)
+	}
+
+	const body = choose(["A", "O"]).repeat(bodyLength)
+
+	// Chance to wrap the message in one of these Markdown strings
+	const formatter = chance(50) ? "" : choose(["*", "**", "***"])
+
+	// Chance to put one of these at the end of the message
+	const suffix = chance(50) ? "" : choose(["H", "RGH"])
+
+	// Example: "**AAAAAAAAAAAARGH**"
+	let text = formatter + body + suffix + formatter
+
+	if (chance(50)) {
+		text = text.toLowerCase()
+	}
+
+	return text
 }
 
 
