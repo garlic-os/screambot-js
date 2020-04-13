@@ -578,7 +578,7 @@ async function channelTable(channelDict) {
 
 /**
  * Generates an object containing stats about
- *   all the nicknames Bipolar has.
+ *   all the nicknames Screambot has.
  * 
  * @param {Object} nicknameDict - Dictionary of nicknames
  * @return {Promise<Object>} Object intended to be console.table'd
