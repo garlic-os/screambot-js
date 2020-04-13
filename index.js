@@ -254,7 +254,7 @@ function generateScream() {
 	// Example: "**AAAAAAAAAAAARGH**"
 	let text = formatter + body + suffix + formatter
 
-	if (chance(50)) {
+	if (chance(12.5)) {
 		text = text.toLowerCase()
 	}
 
