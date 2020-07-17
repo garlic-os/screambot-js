@@ -68,7 +68,7 @@ client.on("message", message => {
 			message.channel.type === "dm")) { // or a DM channel
 	
 		// Pinged
-		if (message.isMentioned(client.user)) {
+		if (message.mentions.has(client.user)) {
 			if (!command(message)) {
 				console.log(`${locationString(message)} Pinged by ${message.author.tag}.`);
 
@@ -112,7 +112,7 @@ client.on("message", message => {
  * Triggers when Screambot joins a server
  */
 client.on("guildCreate", guild => {
-	const embed = new Discord.RichEmbed()
+	const embed = new Discord.MessageEmbed()
 		.setAuthor("Added to a server.")
 		.setTitle(guild.name)
 		.setDescription(guild.id)
@@ -131,7 +131,7 @@ Channels:`;
 	 *   line to the log message
 	 *   for every text channel in the guild.
 	 */
-	guild.channels.tap(channel => {
+	guild.channels.cache.each(channel => {
 		if (channel.type === "text") {
 			embed.addField(`#${channel.name}`, channel.id, true);
 			logmsg += `\n#${channel.name} (ID: ${channel.id})`;
@@ -398,10 +398,10 @@ function command(message) {
 
 
 			servers: () => {
-				const embed = new Discord.RichEmbed()
+				const embed = new Discord.MessageEmbed()
 					.setTitle("Member of these servers");
 
-				client.guilds.tap(server => {
+				client.guilds.cache.each(server => {
 					embed.addField(server.name, server.id, true);
 				});
 
