@@ -5,8 +5,7 @@
   },
   "dependencies": {
     "console-stamp": "0.2.7",
-    "discord.js": "11.4.2",
-    "dotenv": "^8.2.0",
+    "discord.js": "^12.2.0",
     "forever": "^2.0.0"
   }
 }
