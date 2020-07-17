@@ -46,7 +46,7 @@ client.on("ready", () => {
 	updateNicknames(config.NICKNAMES);
 
 	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`));
+		.then( ({ activities }) => console.log(`Activity set: ${activities[0].name}`));
 
 	channelTable(config.CHANNELS).then(table => {
 		console.info("Channels:")
@@ -176,7 +176,7 @@ async function updateNicknames(nicknameDict) {
 
 	for (const serverName in nicknameDict) {
 		const [ serverID, nickname ] = nicknameDict[serverName];
-		const server = client.guilds.get(serverID);
+		const server = client.guilds.cache.get(serverID);
 		if (!server) {
 			console.warn(`Nickname configured for a server that Screambot is not in. Nickname could not be set in ${serverName} (${serverID}).`);
 			continue;
@@ -251,9 +251,9 @@ function generateScream() {
 
 
 /**
- * Returns a boolean based on RANDOM_REPLY_CHANCE.
+ * Return true RANDOM_REPLY_CHANCE percent of the time.
  * 
- * @return {boolean} Whether to reply or not
+ * @return {boolean} whether to reply or not
  */
 function randomReplyChance() {
 	return Math.random() * 100 <= config.RANDOM_REPLY_CHANCE;
@@ -261,12 +261,11 @@ function randomReplyChance() {
 
 
 /**
- * Scream In
- * Generates a scream with generateScream()
- *   and sends it to the given channel with sayIn()
+ * Generate a scream with generateScream()
+ *   and send it to the given channel with sayIn().
  * 
  * @param {Channel} channel - channel to scream in
- * @return {Promise<Message>} Message object that was sent
+ * @return {Promise<DiscordMessage>} message that was sent
  */
 async function screamIn(channel) {
 	if (rateLimiting) {
@@ -279,11 +278,11 @@ async function screamIn(channel) {
 
 /**
  * Send a message to a channel.
- * Rejects if the channel is not whitelisted.
+ * Reject if the channel is not whitelisted.
  * 
  * @param {Channel} channel - channel to send the message to
  * @param {string} string - message to send
- * @return {Promise<Message>} Message object that was sent
+ * @return {Promise<DiscordMessage>} message that was sent
  */
 async function sayIn(channel, string) {
 	if (canScreamIn(channel.id) || channel.type === "dm")
@@ -298,7 +297,7 @@ async function sayIn(channel, string) {
  * 
  * @param {any} val
  * @param {Object} object
- * @return {boolean} True/false
+ * @return {boolean}
  */
 function has(val, obj) {
 	for (const key in obj) {
@@ -330,19 +329,13 @@ function inDoNotReply(userID) {
 
 
 /**
- * Command
- * Parses and executes commands received from a Screambot ranked official
- * 
- * Admins can only execute admin commands
- * Devs can execute both admin and dev commands
- * 
- * Returns true if a command was executed
- * Returns false if no command was executed
- * 
- * Here be dragons
+ * Parse and execute a command from an admin or a dev.
  * 
  * Command syntax:
  * "@Screambot [command] [args space delimited]"
+ * 
+ * @param {DiscordMessage} message - message object to get the necessary command information from
+ * @return {boolean} command was executed
  */
 function command(message) {
 	try {
@@ -359,55 +352,72 @@ function command(message) {
 		args.shift(); // Remove "@Screambot"
 		const command = args.shift().toLowerCase();
 
-		// -- COMMAND LIST --
-		switch (command) {
-			case "say":
+		// -- COMMANDS --
+		const commands = {
+			say: () => {
 				sayIn(message.channel, args.join(" "))
 					.then(log.say);
-				break;
+			},
 
 
-			case "sayin":
-				const channelID = args.shift(); // Subtract first entry so it doesn't get in the way later
-				if (client.channels.has(channelID)) {
-					sayIn(client.channels.get(channelID), args.join(" "))
+			sayin: async () => {
+				const channelID = args[0];
+				let channel;
+
+				try {
+					channel = await client.channels.fetch(channelID);
+				} catch (e) {}
+
+				if (channel) {
+					args.shift(); // Remove first argument (the channel ID)
+					sayIn(channel, args.join(" "))
 						.then(log.say);
 				} else {
 					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SPEAK THERE AAAAAAAAAAAAAA")
 						.then(log.error);
 				}
-				break;
+			},
 
 
-			case "screamin":
-				if (client.channels.has(args[0])) {
-					screamIn(client.channels.get(args[0]))
+			screamin: async () => {
+				let channel;
+
+				try {
+					channel = await client.channels.fetch(channelID);
+				} catch (e) {}
+
+				if (channel) {
+					screamIn(channel)
 						.then(log.scream)
 						.catch(log.rateLimited);
 				} else {
 					sayIn(message.channel, "AAAAAAAAAAAAAA I CAN'T SCREAM THERE AAAAAAAAAAAAAA")
 						.then(log.error);
 				}
-				break;
+			},
 
 
-			case "servers":
-				const servers_embed = new Discord.RichEmbed()
+			servers: () => {
+				const embed = new Discord.RichEmbed()
 					.setTitle("Member of these servers");
 
 				client.guilds.tap(server => {
-					servers_embed.addField(server.name, server.id, true);
+					embed.addField(server.name, server.id, true);
 				});
 
-				message.author.send(servers_embed)
+				message.author.send(embed)
 					.then(console.log(`${locationString(message)} Listed servers.`));
-				break;
+			},
+		};
 
+		const valid = commands.hasOwnProperty(command);
 
-			default:
-				return false;
+		if (valid) {
+			commands[command]();
 		}
-		return true;
+
+		return valid;
+
 	} catch (err) {
 		logError(`A command caused an error: ${message}\n${err}`);
 	}
@@ -454,7 +464,7 @@ async function dm(user, string) {
 async function dmTheDevs(string) {
 	if (config.DEVS) {
 		for (const key in config.DEVS) {
-			const user = await client.fetchUser(config.DEVS[key]);
+			const user = await client.users.fetch(config.DEVS[key]);
 			dm(user, string)
 				.catch(console.error);
 		}
@@ -469,24 +479,24 @@ async function dmTheDevs(string) {
 
 
 /**
- * Is Scream
- * Returns whether the provided string
- *   is considered a scream or not
- * Putting it here in its own place
- *   makes it easier to make the scream
- *   condition more complex
+ * Does the string contain a scream?
+ * 
+ * @param {string} text
+ * @return {boolean}
  */
-function isScream(string) {
-	return string.toUpperCase().includes("AAA");
+function isScream(text) {
+	return text.toUpperCase().includes("AAA");
 }
 
 
 /**
- * Location string
  * A syntactic shortcut for when a
  *   callback or promise from a message 
  *   wants to log where Screambot sent
- *   a message
+ *   a message.
+ * 
+ * @param {DiscordMessage} - message object to get the location information from
+ * @return {string} formatted string showing the origin of the message
  */
 function locationString(message) {
 	return (message.channel.type === "dm")
@@ -496,11 +506,11 @@ function locationString(message) {
 
 
 /**
- * Generates an object containing stats about
+ * Generate an object containing stats about
  *   all the channels in the given dictionary.
  * 
  * @param {Object} channelDict - Dictionary of channels
- * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object
+ * @return {Promise<Object>} Resolve: Object intended to be console.table'd
  * 
  * @example
  *     channelTable(config.SPEAKING_CHANNELS)
@@ -518,7 +528,7 @@ async function channelTable(channelDict) {
 	const stats = {};
 	for (const key in channelDict) {
 		const channelID = channelDict[key];
-		const channel = client.channels.get(channelID);
+		const channel = await client.channels.fetch(channelID);
 		const stat = {};
 		stat["Server"] = channel.guild.name;
 		stat["Name"] = "#" + channel.name;
@@ -529,7 +539,7 @@ async function channelTable(channelDict) {
 
 
 /**
- * Generates an object containing stats about
+ * Generate an object containing stats about
  *   all the nicknames Screambot has.
  * 
  * @param {Object} nicknameDict - Dictionary of nicknames
@@ -551,7 +561,7 @@ async function nicknameTable(nicknameDict) {
 	const stats = {};
 	for (const serverName in nicknameDict) {
 		const [ serverID, nickname ] = nicknameDict[serverName];
-		const server = client.guilds.get(serverID);
+		const server = client.guilds.cache.get(serverID);
 		const stat = {};
 		stat["Server"] = server.name;
 		stat["Intended"] = nickname;
@@ -562,6 +572,12 @@ async function nicknameTable(nicknameDict) {
 }
 
 
+/**
+ * Does the object have anything in it?
+ * 
+ * @param {Object} obj
+ * @return {boolean}
+ */
 function isEmpty(obj) {
 	for (const key in obj) {
 		if (obj.hasOwnProperty(key))
@@ -572,7 +588,7 @@ function isEmpty(obj) {
 
 
 /**
- * Get status name from status code
+ * Get a status name from status code.
  * 
  * @param {number} code - status code
  * @return {string} status name
