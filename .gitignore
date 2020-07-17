@@ -105,3 +105,6 @@ dist
 
 # Screambot configuration file
 config.js
+
+# VSCode workspace
+.code-workspace
