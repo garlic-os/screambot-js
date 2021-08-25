@@ -194,7 +194,8 @@ async function updateNicknames(nicknameDict) {
 
 
 /**
- * Generate a scream with random variations.
+ * 
+ a scream with random variations.
  * 
  * @return {string} scream
  */
@@ -237,7 +238,7 @@ function generateScream() {
 	const formatter = chance(50) ? "" : choose(["*", "**", "***"]);
 
 	// Chance to put one of these at the end of the message
-	const suffix = chance(50) ? "" : choose(["H", "RGH"]);
+	const suffix = chance(50) ? "" : choose(["H", "RGH", "ER"]);
 
 	// Example: "**AAAAAAAAAAAARGH**"
 	let text = formatter + body + suffix + formatter;
