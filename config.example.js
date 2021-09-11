@@ -22,9 +22,6 @@ module.exports = {
         "You, probably": "<USER ID HERE>",
     },
 
-    // Set this to true if you don't want Screambot to print anything to the terminal.
-    DISABLE_LOGGING: false,
-
     // Put the login token for your Discord bot here.
     // If you'd rather, you can also replace this field with something like
     //   process.env.TOKEN to fetch it from an environment variable.
