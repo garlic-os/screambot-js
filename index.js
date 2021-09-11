@@ -43,10 +43,7 @@ client.on("ready", () => {
 		rateLimiting = false;
 	}, config.RATE_LIMIT_MS);
 
-
-	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-		.then( ({ activities }) => console.log(`Activity set: ${activities[0].name}`));
-
+	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 });
 
 
