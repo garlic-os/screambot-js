@@ -36,11 +36,6 @@ module.exports = {
         "Naughty boy": "<USER ID HERE>",
     },
 
-    NICKNAMES: {
-        // Give Screambot server-specific nicknames here.
-        "a server": ["<SERVER ID HERE>", "Screamy Boye"]
-    },
-
     // The percent chance that Screambot will decide to treat an incoming
     //   message as a trigger to scream regardless of its content.
     RANDOM_REPLY_CHANCE: 0.5,

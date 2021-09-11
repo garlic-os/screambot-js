@@ -43,7 +43,6 @@ client.on("ready", () => {
 		rateLimiting = false;
 	}, config.RATE_LIMIT_MS);
 
-	updateNicknames(config.NICKNAMES);
 
 	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 		.then( ({ activities }) => console.log(`Activity set: ${activities[0].name}`));
@@ -156,23 +155,11 @@ client.login(config.DISCORD_BOT_TOKEN);
 
 
 /**
- * Sets the custom nicknames from config
+ * Random outcome with a <percent>% chance of being True.
  * 
- * @return {Promise<void|Error[]>} Resolve: nothing (there were no errors); Reject: array of errors
+ * @param {number} percent
+ * @return {Boolean}
  */
-async function updateNicknames(nicknameDict) {
-	const errors = [];
-
-	for (const serverName in nicknameDict) {
-		const [ serverID, nickname ] = nicknameDict[serverName];
-		const server = client.guilds.cache.get(serverID);
-		if (!server) {
-			console.warn(`Nickname configured for a server that Screambot is not in. Nickname could not be set in ${serverName} (${serverID}).`);
-			continue;
-		}
-		server.me.setNickname(nickname)
-			.catch(errors.push);
-	}
 	function chance(percent) {
 	return Math.random() < percent / 100;
 }
