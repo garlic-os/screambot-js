@@ -173,12 +173,20 @@ async function updateNicknames(nicknameDict) {
 		server.me.setNickname(nickname)
 			.catch(errors.push);
 	}
+	function chance(percent) {
+	return Math.random() < percent / 100;
+}
 
-	if (errors.length > 0) {
-		throw errors;
-	} else {
-		return;
-	}
+/**
+ * Pick a random element from an array.
+ * 
+ * @template T
+ * @param {T[]} choices
+ * @return {T} random element from choices
+ */
+function choose(choices) {
+	const index = Math.floor(Math.random() * choices.length);
+	return choices[index];
 }
 
 
@@ -188,29 +196,6 @@ async function updateNicknames(nicknameDict) {
  * @return {string} scream
  */
 function generateScream() {
-	/**
-	 * Random outcome with a <percent>% chance of being True.
-	 * 
-	 * @param {number} percent
-	 * @return {Boolean}
-	 */
-	function chance(percent) {
-		return Math.random() < percent / 100;
-	}
-
-	/**
-	 * Pick a random element from an array.
-	 * 
-	 * @template T
-	 * @param {T[]} choices
-	 * @return {T} random element from choices
-	 */
-	function choose(choices) {
-		const index = Math.floor(Math.random() * choices.length);
-		return choices[index];
-	}
-
-
 	const min = 1;
 	const max = 100;
 	const bodyLength = Math.floor(Math.random() * (max-min)) + min;
