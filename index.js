@@ -492,14 +492,3 @@ function locationString(message) {
 		? `[Direct message]`
 		: `[${message.guild.name} - #${message.channel.name}]`;
 }
-
-
-/**
- * Get a status name from status code.
- * 
- * @param {number} code - status code
- * @return {string} status name
- */
-function status(code) {
-	return ["Playing", "Streaming", "Listening to", "Watching"][code];
-}
