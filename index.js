@@ -19,7 +19,6 @@ if (config.DISABLE_LOGS) {
 const log = {
 	say:    message => console.log(`${locationString(message)} Sent the message, "${message.content}".`),
 	scream: message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`),
-	screamReply: message => console.log(`Replied with a ${message.content.length} A's.\n`),
 	error:  message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`),
 	rateLimited: () => console.log("Wanted to scream, but was rate limited."),
 };
@@ -58,7 +57,7 @@ client.on("message", message => {
 				console.log(`${locationString(message)} Pinged by ${message.author.tag}.`);
 
 				screamIn(message.channel)
-					.then(log.screamReply)
+					.then(log.scream)
 					.catch(log.rateLimited);
 			}
 		}
@@ -67,7 +66,7 @@ client.on("message", message => {
 		else if (isScream(message.content)) {
 			console.log(`${locationString(message)} ${message.author.tag} has screamed.`);
 			screamIn(message.channel)
-				.then(log.screamReply)
+				.then(log.scream)
 				.catch(log.rateLimited);
 		}
 
@@ -75,7 +74,7 @@ client.on("message", message => {
 		else if (message.channel.type === "dm") {
 			console.log(`[Direct message] Received a DM from ${message.author.tag}.`);
 			screamIn(message.channel)
-				.then(log.screamReply)
+				.then(log.scream)
 				.catch(log.rateLimited);
 		}
 		
@@ -84,7 +83,7 @@ client.on("message", message => {
 			if (randomReplyChance()) {
 				console.log(`${locationString(message)} Randomly decided to reply to ${message.author.tag}'s message.`);
 				screamIn(message.channel)
-					.then(log.screamReply)
+					.then(log.scream)
 					.catch(log.rateLimited);
 			}
 		}
