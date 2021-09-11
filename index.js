@@ -48,17 +48,6 @@ client.on("ready", () => {
 	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 		.then( ({ activities }) => console.log(`Activity set: ${activities[0].name}`));
 
-	channelTable(config.CHANNELS).then(table => {
-		console.info("Channels:")
-		console.table(table)
-	})
-	.catch(console.warn);
-
-	nicknameTable(config.NICKNAMES).then(table => {
-		console.info("Nicknames:")
-		console.table(table)
-	})
-	.catch(console.warn);
 });
 
 
@@ -502,88 +491,6 @@ function locationString(message) {
 	return (message.channel.type === "dm")
 		? `[Direct message]`
 		: `[${message.guild.name} - #${message.channel.name}]`;
-}
-
-
-/**
- * Generate an object containing stats about
- *   all the channels in the given dictionary.
- * 
- * @param {Object} channelDict - Dictionary of channels
- * @return {Promise<Object>} Resolve: Object intended to be console.table'd
- * 
- * @example
- *     channelTable(config.SPEAKING_CHANNELS)
- *         .then(console.table)
- */
-async function channelTable(channelDict) {
-	if (config.DISABLE_LOGS) {
-		return {};
-	}
-	
-	if (isEmpty(channelDict)) {
-		throw "No channels are whitelisted.";
-	}
-
-	const stats = {};
-	for (const key in channelDict) {
-		const channelID = channelDict[key];
-		const channel = await client.channels.fetch(channelID);
-		const stat = {};
-		stat["Server"] = channel.guild.name;
-		stat["Name"] = "#" + channel.name;
-		stats[channelID] = stat;
-	}
-	return stats;
-}
-
-
-/**
- * Generate an object containing stats about
- *   all the nicknames Screambot has.
- * 
- * @param {Object} nicknameDict - Dictionary of nicknames
- * @return {Promise<Object>} Object intended to be console.table'd
- * 
- * @example
- *     nicknameTable(config.NICKNAMES)
- *         .then(console.table)
- */
-async function nicknameTable(nicknameDict) {
-	if (config.DISABLE_LOGS) {
-		return {};
-	}
-	
-	if (isEmpty(nicknameDict)) {
-		throw "No nicknames defined.";
-	}
-
-	const stats = {};
-	for (const serverName in nicknameDict) {
-		const [ serverID, nickname ] = nicknameDict[serverName];
-		const server = client.guilds.cache.get(serverID);
-		const stat = {};
-		stat["Server"] = server.name;
-		stat["Intended"] = nickname;
-		stat["De facto"] = server.me.nickname;
-		stats[serverID] = stat;
-	}
-	return stats;
-}
-
-
-/**
- * Does the object have anything in it?
- * 
- * @param {Object} obj
- * @return {boolean}
- */
-function isEmpty(obj) {
-	for (const key in obj) {
-		if (obj.hasOwnProperty(key))
-    		return false;
-		}
-	return true;
 }
 
 
