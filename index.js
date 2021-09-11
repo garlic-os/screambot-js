@@ -7,19 +7,12 @@ if (config.CRASH_ON_ERROR) {
 	process.on("unhandledRejection", up => { throw up });
 }
 
-// Overwrite console methods with empty ones if logging is disabled
-if (config.DISABLE_LOGS) {
-    for (const method in console) {
-        console[method] = () => {};
-    }
-} else {
-	require("console-stamp")(console);
-}
+require("console-stamp")(console);
 
 const log = {
 	say:    message => console.log(`${locationString(message)} Sent the message, "${message.content}".`),
 	scream: message => console.log(`${locationString(message)} Sent a ${message.content.length}-character long scream.`),
-	screamReply: message => console.log(`Replied with a ${message.content.length} A's.\n`),
+	screamReply: message => console.log(`${locationString(message)} Sent the message, "${message.content}".`),
 	error:  message => console.log(`${locationString(message)} Sent the error message, "${message.content}".`),
 	rateLimited: () => console.log("Wanted to scream, but was rate limited."),
 };
@@ -27,12 +20,14 @@ const log = {
 const Discord = require("discord.js");
 const client = new Discord.Client();
 
+let happiness = -4;
+
 
 /**
  * Rate limiting. While true, Screambot will drop all requests to scream.
  * @type {Boolean}
  */
-let rateLimiting = false
+let rateLimiting = false;
 
 
 client.on("ready", () => {
@@ -43,22 +38,7 @@ client.on("ready", () => {
 		rateLimiting = false;
 	}, config.RATE_LIMIT_MS);
 
-	updateNicknames(config.NICKNAMES);
-
-	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-		.then( ({ activities }) => console.log(`Activity set: ${activities[0].name}`));
-
-	channelTable(config.CHANNELS).then(table => {
-		console.info("Channels:")
-		console.table(table)
-	})
-	.catch(console.warn);
-
-	nicknameTable(config.NICKNAMES).then(table => {
-		console.info("Nicknames:")
-		console.table(table)
-	})
-	.catch(console.warn);
+	client.user.setActivity("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 });
 
 
@@ -67,8 +47,20 @@ client.on("message", message => {
 			canScreamIn(message.channel.id) || // Is in either a channel Screambot is allowed in,
 			message.channel.type === "dm")) { // or a DM channel
 	
+		// Trying to cheer Screambot up
+		if (isEncouragingScreambot(message)) {
+			feelBetter(message.channel)
+				.then(log.say);
+		}
+
+		// Talking about Screambot's recent change in behavior
+		else if (isWorriedAboutScreambot(message) && chance(75)) {
+			talkAboutSelf(message.channel)
+				.then(log.say);
+		}
+
 		// Pinged
-		if (message.mentions.has(client.user)) {
+		else if (message.mentions.has(client.user)) {
 			if (!command(message)) {
 				console.log(`${locationString(message)} Pinged by ${message.author.tag}.`);
 
@@ -166,30 +158,28 @@ client.login(config.DISCORD_BOT_TOKEN);
 // --- Functions -------------------------
 
 
+
 /**
- * Sets the custom nicknames from config
+ * Random outcome with a <percent>% chance of being True.
  * 
- * @return {Promise<void|Error[]>} Resolve: nothing (there were no errors); Reject: array of errors
+ * @param {number} percent
+ * @return {Boolean}
  */
-async function updateNicknames(nicknameDict) {
-	const errors = [];
+	function chance(percent) {
+	return Math.random() < percent / 100;
+}
 
-	for (const serverName in nicknameDict) {
-		const [ serverID, nickname ] = nicknameDict[serverName];
-		const server = client.guilds.cache.get(serverID);
-		if (!server) {
-			console.warn(`Nickname configured for a server that Screambot is not in. Nickname could not be set in ${serverName} (${serverID}).`);
-			continue;
-		}
-		server.me.setNickname(nickname)
-			.catch(errors.push);
-	}
 
-	if (errors.length > 0) {
-		throw errors;
-	} else {
-		return;
-	}
+/**
+ * Pick a random element from an array.
+ * 
+ * @template T
+ * @param {T[]} choices
+ * @return {T} random element from choices
+ */
+function choose(choices) {
+	const index = Math.floor(Math.random() * choices.length);
+	return choices[index];
 }
 
 
@@ -198,30 +188,39 @@ async function updateNicknames(nicknameDict) {
  * 
  * @return {string} scream
  */
-function generateScream() {
-	/**
-	 * Random outcome with a <percent>% chance of being True.
-	 * 
-	 * @param {number} percent
-	 * @return {Boolean}
-	 */
-	function chance(percent) {
-		return Math.random() < percent / 100;
+function generateSadScream() {
+	const min = 0;  // maybe don't scream at all
+	const max = 20;  // shorter screams
+	const bodyLength = Math.floor(Math.random() * (max-min)) + min;
+
+	// Vanilla scream half the time
+	if (chance(50)) {
+		return "a".repeat(bodyLength);
 	}
 
-	/**
-	 * Pick a random element from an array.
-	 * 
-	 * @template T
-	 * @param {T[]} choices
-	 * @return {T} random element from choices
-	 */
-	function choose(choices) {
-		const index = Math.floor(Math.random() * choices.length);
-		return choices[index];
+	// Always lowercase
+	let text = choose(["a", "o"]).repeat(bodyLength);
+
+	if (text.length > 0) {
+		text += chance(50) ? "" : choose(["h", "rgh", "er"]);
 	}
 
+	if (chance(12.5) || text.length === 0) {
+		text += "... _sigh_";
+	}
 
+	// No more bold or italics
+
+	return text;
+}
+
+
+/**
+ * Generate a scream with random variations.
+ * 
+ * @return {string} scream
+ */
+ function generateOriginalScream() {
 	const min = 1;
 	const max = 100;
 	const bodyLength = Math.floor(Math.random() * (max-min)) + min;
@@ -251,6 +250,42 @@ function generateScream() {
 
 
 /**
+ * Generate a scream with random variations.
+ * 
+ * @return {string} scream
+ */
+ function generatePassionateScream() {
+	const min = 20;
+	const max = 200;
+	const bodyLength = Math.floor(Math.random() * (max-min)) + min;
+
+	// Vanilla scream half the time
+	if (chance(50)) {
+		return "A".repeat(bodyLength);
+	}
+
+	const body = choose(["A", "O"]).repeat(bodyLength);
+
+	// Chance to wrap the message in one of these Markdown strings
+	const formatter = chance(75) ? "" : choose(["*", "**", "***"]);
+
+	// Chance to put one of these at the end of the message
+	const suffix = chance(50) ? "" : choose(["H", "RGH", "ER"]);
+
+	const punctuation = "!".repeat(Math.floor(Math.random() * 3));
+
+	// Example: "**AAAAAAAAAAAARGH**"
+	let text = formatter + body + suffix + punctuation + formatter;
+
+	if (chance(12.5)) {
+		text = text.toLowerCase();
+	}
+
+	return text;
+}
+
+
+/**
  * Return true RANDOM_REPLY_CHANCE percent of the time.
  * 
  * @return {boolean} whether to reply or not
@@ -260,8 +295,13 @@ function randomReplyChance() {
 }
 
 
+function delay(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
 /**
- * Generate a scream with generateScream()
+ * Generate a scream with generateSadScream()
  *   and send it to the given channel with sayIn().
  * 
  * @param {Channel} channel - channel to scream in
@@ -271,8 +311,20 @@ async function screamIn(channel) {
 	if (rateLimiting) {
 		throw "Rate limited";
 	}
+	if (chance(12.5)) {
+		return; // don't scream sometimes
+	}
+
+	let screamFunction;
+	if (happiness < 0) {
+		screamFunction = generateSadScream;
+		await delay(Math.random() * 2000);
+	} else {
+		screamFunction = generatePassionateScream;
+	}
+
 	rateLimiting = true;
-	return await sayIn(channel, generateScream());
+	return await sayIn(channel, screamFunction());
 }
 
 
@@ -505,94 +557,86 @@ function locationString(message) {
 }
 
 
-/**
- * Generate an object containing stats about
- *   all the channels in the given dictionary.
- * 
- * @param {Object} channelDict - Dictionary of channels
- * @return {Promise<Object>} Resolve: Object intended to be console.table'd
- * 
- * @example
- *     channelTable(config.SPEAKING_CHANNELS)
- *         .then(console.table)
- */
-async function channelTable(channelDict) {
-	if (config.DISABLE_LOGS) {
-		return {};
-	}
-	
-	if (isEmpty(channelDict)) {
-		throw "No channels are whitelisted.";
-	}
+function isWorriedAboutScreambot(message) {
+	const keywords = [
+		"ok",
+		"alright",
+		"feel",
+		"good",
+		"bad",
+		"wrong",
+		"problem",
+		"matter",
+		"what's up",
+	];
 
-	const stats = {};
-	for (const key in channelDict) {
-		const channelID = channelDict[key];
-		const channel = await client.channels.fetch(channelID);
-		const stat = {};
-		stat["Server"] = channel.guild.name;
-		stat["Name"] = "#" + channel.name;
-		stats[channelID] = stat;
-	}
-	return stats;
-}
-
-
-/**
- * Generate an object containing stats about
- *   all the nicknames Screambot has.
- * 
- * @param {Object} nicknameDict - Dictionary of nicknames
- * @return {Promise<Object>} Object intended to be console.table'd
- * 
- * @example
- *     nicknameTable(config.NICKNAMES)
- *         .then(console.table)
- */
-async function nicknameTable(nicknameDict) {
-	if (config.DISABLE_LOGS) {
-		return {};
-	}
-	
-	if (isEmpty(nicknameDict)) {
-		throw "No nicknames defined.";
-	}
-
-	const stats = {};
-	for (const serverName in nicknameDict) {
-		const [ serverID, nickname ] = nicknameDict[serverName];
-		const server = client.guilds.cache.get(serverID);
-		const stat = {};
-		stat["Server"] = server.name;
-		stat["Intended"] = nickname;
-		stat["De facto"] = server.me.nickname;
-		stats[serverID] = stat;
-	}
-	return stats;
-}
-
-
-/**
- * Does the object have anything in it?
- * 
- * @param {Object} obj
- * @return {boolean}
- */
-function isEmpty(obj) {
-	for (const key in obj) {
-		if (obj.hasOwnProperty(key))
-    		return false;
+	if (message.content.toLowerCase().includes("screambot") || message.mentions.has(client.user)) {
+		for (const keyword of keywords) {
+			if (message.content.toLowerCase().includes(keyword)) {
+				return true;
+			}
 		}
-	return true;
+	}
+	return false;
 }
 
 
-/**
- * Get a status name from status code.
- * 
- * @param {number} code - status code
- * @return {string} status name
- */
-function status(code) {
-	return ["Playing", "Streaming", "Listening to", "Watching"][code];
+async function talkAboutSelf(channel) {
+	const text = choose([
+		"i've just not been feeling it lately",
+		"i dont know",
+		"sigh",
+		"meh",
+	]);
+	await delay(Math.random() * 2000);
+	return await channel.send(text);
+}
+
+
+function isEncouragingScreambot(message) {
+	const keywords = [
+		"it's ok",
+		"be alright",
+		"believe",
+		"hope",
+		"better",
+		"do it",
+	];
+
+	if (message.content.toLowerCase().includes("screambot") || message.mentions.has(client.user)) {
+		for (const keyword of keywords) {
+			if (message.content.toLowerCase().includes(keyword)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+async function feelBetter(channel) {
+	happiness++;
+
+	if (happiness > 0) {
+		dmTheDevs("I feel better again!");
+		await channel.send("Thank you... your words really mean a lot to me. I feel a lot better now!");
+		await delay(2000);
+		await channel.send(generatePassionateScream());
+		await delay(1750);
+		return await channel.send("i wont let you guys down again");
+	} else {
+		let text = choose([
+			"thanks",
+			":)",
+			"yeah",
+			"i guess so",
+		]);
+		if (chance(50)) {
+			delay(2000).then(() => {
+				channel.send("aaaaaaaa");
+			});
+		}
+		dmTheDevs("I've been encouraged!");
+		await delay(Math.random() * 2000);
+		return await channel.send(text);
+	}
 }
