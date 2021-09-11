@@ -228,8 +228,10 @@ function generateScream() {
 	// Chance to put one of these at the end of the message
 	const suffix = chance(50) ? "" : choose(["H", "RGH", "ER"]);
 
-	// Example: "**AAAAAAAAAAAARGH**"
-	let text = formatter + body + suffix + formatter;
+	const punctuation = "!".repeat(Math.max(Math.floor((Math.random() * -3) + 6), 0));
+
+	// Example: "**AAAAAAAAAAAARGH!**"
+	let text = formatter + body + suffix + punctuation + formatter;
 
 	if (chance(12.5)) {
 		text = text.toLowerCase();
