@@ -212,8 +212,9 @@ function generateScream() {
 	/**
 	 * Pick a random element from an array.
 	 * 
-	 * @param {any[]} choices
-	 * @return {any} random element from choices
+	 * @template T
+	 * @param {T[]} choices
+	 * @return {T} random element from choices
 	 */
 	function choose(choices) {
 		const index = Math.floor(Math.random() * choices.length);
@@ -224,7 +225,6 @@ function generateScream() {
 	const min = 1;
 	const max = 100;
 	const bodyLength = Math.floor(Math.random() * (max-min)) + min;
-
 
 	// Vanilla scream half the time
 	if (chance(50)) {
