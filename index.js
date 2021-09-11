@@ -194,8 +194,7 @@ async function updateNicknames(nicknameDict) {
 
 
 /**
- * 
- a scream with random variations.
+ * Generate a scream with random variations.
  * 
  * @return {string} scream
  */
