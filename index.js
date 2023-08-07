@@ -339,6 +339,7 @@ function command(message) {
 
 
 			screamin: async () => {
+				const channelID = args[0];
 				let channel;
 
 				try {
