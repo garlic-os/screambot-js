@@ -185,11 +185,11 @@ function choice(min, max) {
 function generateScream() {
 	if (chance(50)) {
 		let text = "";
-		text += "N" * choice(1, 3);
-		text += "U" * choice(1, 20);
-		text += "G" * choice(1, 40);
-		text += "E" * choice(1, 20);
-		text += "T" * choice(1, 10);
+		text += "N".repeat(choice(1, 3));
+		text += "U".repeat(choice(1, 20));
+		text += "G".repeat(choice(1, 40));
+		text += "E".repeat(choice(1, 20));
+		text += "T".repeat(choice(1, 10));
 		return text;
 	}
 
