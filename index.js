@@ -172,6 +172,10 @@ function choose(choices) {
 	return choices[index];
 }
 
+function choice(min, max) {
+	return Math.floor(Math.random() * (max-min)) + min;
+}
+
 
 /**
  * Generate a scream with random variations.
@@ -179,9 +183,19 @@ function choose(choices) {
  * @return {string} scream
  */
 function generateScream() {
+	if (chance(50)) {
+		let text = "";
+		text += "N" * choice(1, 3);
+		text += "U" * choice(1, 20);
+		text += "G" * choice(1, 40);
+		text += "E" * choice(1, 20);
+		text += "T" * choice(1, 10);
+		return text;
+	}
+
 	const min = 1;
 	const max = 100;
-	const bodyLength = Math.floor(Math.random() * (max-min)) + min;
+	const bodyLength = choice(min, max);
 
 	// Vanilla scream half the time
 	if (chance(50)) {
