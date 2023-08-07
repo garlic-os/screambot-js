@@ -187,7 +187,7 @@ function generateScream() {
 		let text = "";
 		text += "N".repeat(choice(1, 3));
 		text += "U".repeat(choice(1, 20));
-		text += "G".repeat(choice(1, 40));
+		text += "G".repeat(choice(2, 40));
 		text += "E".repeat(choice(1, 20));
 		text += "T".repeat(choice(1, 10));
 		return text;
