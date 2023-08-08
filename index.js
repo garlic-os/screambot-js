@@ -190,6 +190,7 @@ function generateScream() {
 		text += "G".repeat(choice(2, 40));
 		text += "E".repeat(choice(1, 20));
 		text += "T".repeat(choice(1, 10));
+		text += "!".repeat(Math.max(Math.floor((Math.random() * -3) + 6), 0));
 		return text;
 	}
 
