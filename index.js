@@ -151,7 +151,7 @@ client.login(config.DISCORD_BOT_TOKEN);
 
 
 /**
- * Random outcome with a <percent>% chance of being True.
+ * Random outcome with a <percent>% chance of being true.
  * 
  * @param {number} percent
  * @return {Boolean}
@@ -167,9 +167,14 @@ client.login(config.DISCORD_BOT_TOKEN);
  * @param {T[]} choices
  * @return {T} random element from choices
  */
-function choose(choices) {
+function chooseElement(choices) {
 	const index = Math.floor(Math.random() * choices.length);
 	return choices[index];
+}
+
+
+function chooseNumber(min, max) {
+	return Math.floor(Math.random() * (max-min)) + min;
 }
 
 
@@ -179,24 +184,23 @@ function choose(choices) {
  * @return {string} scream
  */
 function generateScream() {
-	const min = 1;
-	const max = 100;
-	const bodyLength = Math.floor(Math.random() * (max-min)) + min;
+	const bodyLength = chooseNumber(1, 100);
 
 	// Vanilla scream half the time
 	if (chance(50)) {
 		return "A".repeat(bodyLength);
 	}
 
-	const body = choose(["A", "O"]).repeat(bodyLength);
+	const body = chooseElement(["A", "O"]).repeat(bodyLength);
 
 	// Chance to wrap the message in one of these Markdown strings
-	const formatter = chance(50) ? "" : choose(["*", "**", "***"]);
+	const formatter = chance(50) ? "" : chooseElement(["*", "**", "***"]);
 
 	// Chance to put one of these at the end of the message
-	const suffix = chance(50) ? "" : choose(["H", "RGH", "ER"]);
+	const suffix = chance(50) ? "" : chooseElement(["H", "RGH", "ER"]);
 
-	const punctuation = "!".repeat(Math.max(Math.floor((Math.random() * -3) + 6), 0));
+	// Chance to add up to 5 exclamation points
+	const punctuation = "!".repeat(Math.max(chooseNumber(-5, 5), 0));
 
 	// Example: "**AAAAAAAAAAAARGH!**"
 	let text = formatter + body + suffix + punctuation + formatter;
