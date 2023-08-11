@@ -4,7 +4,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "console-stamp": "0.2.7",
-    "discord.js": "^12.2.0"
+    "console-stamp": "3.1.2",
+    "discord.js": "^14.12.1"
   }
 }
