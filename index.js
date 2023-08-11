@@ -52,49 +52,48 @@ client.on("ready", () => {
 
 
 client.on("message", message => {
-	if (!inDoNotReply(message.author.id) && ( // Not in the Do-Not-Reply list
-			canScreamIn(message.channel.id) || // Is in either a channel Screambot is allowed in,
-			message.channel.type === "dm")) { // or a DM channel
-	
-		// Pinged
-		if (message.mentions.has(client.user)) {
-			if (!command(message)) {
-				console.log(`${locationString(message)} Pinged by ${message.author.tag}.`);
-
-				screamIn(message.channel)
-					.then(log.scream)
-					.catch(log.rateLimited);
-			}
-		}
-
-		// Someone screams
-		else if (isScream(message.content)) {
-			console.log(`${locationString(message)} ${message.author.tag} has screamed.`);
-			screamIn(message.channel)
-				.then(log.scream)
-				.catch(log.rateLimited);
-		}
-
-		// Always scream at DMs
-		else if (message.channel.type === "dm") {
-			console.log(`[Direct message] Received a DM from ${message.author.tag}.`);
-			screamIn(message.channel)
-				.then(log.scream)
-				.catch(log.rateLimited);
-		}
-		
-		// If the message is nothing special, maybe scream anyway
-		else {
-			if (randomReplyChance()) {
-				console.log(`${locationString(message)} Randomly decided to reply to ${message.author.tag}'s message.`);
-				screamIn(message.channel)
-					.then(log.scream)
-					.catch(log.rateLimited);
-			}
-		}
-
-		logActivity(message);
+	if (inDoNotReply(message.author.id)) {
+		return;
 	}
+	
+	// Pinged
+	if (message.mentions.has(client.user)) {
+		if (!command(message)) {
+			console.log(`${locationString(message)} Pinged by ${message.author.tag}.`);
+
+			screamIn(message.channel)
+				.then(log.scream)
+				.catch(log.rateLimited);
+		}
+	}
+
+	// Someone screams
+	else if (isScream(message.content)) {
+		console.log(`${locationString(message)} ${message.author.tag} has screamed.`);
+		screamIn(message.channel)
+			.then(log.scream)
+			.catch(log.rateLimited);
+	}
+
+	// Always scream at DMs
+	else if (message.channel.type === "dm") {
+		console.log(`[Direct message] Received a DM from ${message.author.tag}.`);
+		screamIn(message.channel)
+			.then(log.scream)
+			.catch(log.rateLimited);
+	}
+	
+	// If the message is nothing special, maybe scream anyway
+	else {
+		if (randomReplyChance(message.channel.id)) {
+			console.log(`${locationString(message)} Randomly decided to reply to ${message.author.tag}'s message.`);
+			screamIn(message.channel)
+				.then(log.scream)
+				.catch(log.rateLimited);
+		}
+	}
+
+	logActivity(message);
 })
 
 
@@ -228,8 +227,13 @@ function generateScream() {
  */
 function randomReplyChance(channelID) {
 	const channelLog = activityLog[channelID];
-	const activityLevel = channelLog.length;
+	const activityLevel = channelLog?.length ?? 0;
 	const replyChance = Math.min((activityLevel ** 2) / 65, 50);
+	
+	if (channelID === "576212353390215180") {
+		console.log({activityLevel, replyChance});
+	}
+	
 	return chance(replyChance);
 }
 
@@ -259,10 +263,7 @@ async function screamIn(channel) {
  * @return {Promise<DiscordMessage>} message that was sent
  */
 async function sayIn(channel, string) {
-	if (canScreamIn(channel.id) || channel.type === "dm")
-		return await channel.send(string);
-
-	throw `Not allowed to scream in [${channel.guild.name} - #${channel.name}].`;
+	return await channel.send(string);
 }
 
 
@@ -279,11 +280,6 @@ function has(val, obj) {
 			return true;
 	}
 	return false;
-}
-
-
-function canScreamIn(channelID) {
-	return has(channelID, config.CHANNELS);
 }
 
 
@@ -482,12 +478,16 @@ function locationString(message) {
 
 function logActivity(message) {
 	const channelID = message.channel.id;
-	const timestamp = message.created_at.timestamp();
-	const channelLog = activityLog[channelID] ?? [];
-	while (timestamp - channelLog[0] > 10) {
-		// Only keep entries from the last 10 seconds
-		channelLog.shift();
+	const timestamp = message.createdAt;  // UNIX timestamp; measured in seconds
+	let channelLog = activityLog[channelID];
+	if (channelLog) {
+		while (timestamp - channelLog[0] > 10 * 1000) {
+			// Only keep entries from the last 10 seconds
+			channelLog.shift();
+		}
+	} else {
+		channelLog = [];
+		activityLog[channelID] = channelLog;
 	}
 	channelLog.push(timestamp);
-	activityLog[channelID] = channelLog;
 }
