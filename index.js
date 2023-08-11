@@ -222,13 +222,14 @@ function generateScream() {
 
 /**
  * Decide to reply more often when there has been more activity in the channel.
+ * https://www.desmos.com/calculator/kownonjq7z
  * 
  * @return {boolean} whether to reply or not
  */
 function randomReplyChance(channelID) {
 	const channelLog = activityLog[channelID];
 	const activityLevel = channelLog.length;
-	const replyChance = config.RANDOM_REPLY_CHANCE; // TODO
+	const replyChance = Math.min((activityLevel ** 2) / 65, 50);
 	return chance(replyChance);
 }
 
