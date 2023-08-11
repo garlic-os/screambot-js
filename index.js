@@ -31,7 +31,12 @@ const client = new Discord.Client({ intents: ["GUILDS", "GUILD_MESSAGES", "DIREC
  * Rate limiting. While true, Screambot will drop all requests to scream.
  * @type {Boolean}
  */
-let rateLimiting = false
+let rateLimiting = false;
+
+
+// A key value pair of channel IDs and a list of the UNIX timestamps
+// of the most recent messages. Used for the excitement meter.
+const activityLog = {};
 
 
 client.on("ready", () => {
@@ -87,6 +92,8 @@ client.on("message", message => {
 					.catch(log.rateLimited);
 			}
 		}
+
+		logActivity(message);
 	}
 })
 
@@ -214,12 +221,15 @@ function generateScream() {
 
 
 /**
- * Return true RANDOM_REPLY_CHANCE percent of the time.
+ * Decide to reply more often when there has been more activity in the channel.
  * 
  * @return {boolean} whether to reply or not
  */
-function randomReplyChance() {
-	return Math.random() * 100 <= config.RANDOM_REPLY_CHANCE;
+function randomReplyChance(channelID) {
+	const channelLog = activityLog[channelID];
+	const activityLevel = channelLog.length;
+	const replyChance = config.RANDOM_REPLY_CHANCE; // TODO
+	return chance(replyChance);
 }
 
 
@@ -466,4 +476,17 @@ function locationString(message) {
 	return (message.channel.type === "dm")
 		? `[Direct message]`
 		: `[${message.guild.name} - #${message.channel.name}]`;
+}
+
+
+function logActivity(message) {
+	const channelID = message.channel.id;
+	const timestamp = message.created_at.timestamp();
+	const channelLog = activityLog[channelID] ?? [];
+	while (timestamp - channelLog[0] > 10) {
+		// Only keep entries from the last 10 seconds
+		channelLog.shift();
+	}
+	channelLog.push(timestamp);
+	activityLog[channelID] = channelLog;
 }
