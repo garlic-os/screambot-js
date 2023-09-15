@@ -1,3 +1,5 @@
+**Development has moved to the C++ version: https://github.com/garlic-os/screambot**
+
 # Screambot
 A Discord bot that screams. That's it.
 
