@@ -19,10 +19,6 @@ I couldn't have done this without:
 - Mozilla Developer Network Web Docs: https://developer.mozilla.org/en-US/
 - discord.js and its documentation: https://discord.js.org/#/
 - Inspiration and encouragement from friends and family
-- node.js lol
+- node.js
 - Viewers like you
   - Thank you
-
----
-
-If you take a look at the code and you find something I should change, please don't hesitate to make an issue or a pull request.
